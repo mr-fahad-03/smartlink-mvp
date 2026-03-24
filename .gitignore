@@ -32,3 +32,6 @@ Thumbs.db
 # Coverage / cache
 coverage/
 .cache/
+
+frontend/_git_backup_hidden/
+

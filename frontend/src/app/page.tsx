@@ -163,10 +163,16 @@ export default function Home() {
           <Badge className="border border-[#45B0A0]/30 bg-[#45B0A0]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#2f8f90]">
             Business Risk Assessment
           </Badge>
-          <h1 className="max-w-3xl text-5xl font-semibold leading-[1.05] tracking-[-0.015em] text-[#111827] sm:text-6xl">
-            Uncover the{" "}
-            <span className="text-[#2f8f90]">hidden risks</span>{" "}
-            in your business before they become costly.
+          <h1 className="max-w-3xl text-4xl font-semibold leading-[1.08] tracking-[-0.015em] text-[#111827] sm:text-5xl">
+            <span className="block bg-[linear-gradient(96deg,#111827_0%,#312e81_26%,#4f46e5_50%,#7c3aed_76%,#a855f7_100%)] bg-clip-text text-transparent [text-shadow:0_0_22px_rgba(124,58,237,0.18)]">
+              Uncover the hidden risks
+            </span>
+            <span className="mt-1 block">
+              in your business{" "}
+              <span className="text-[#5b4fe9] [text-shadow:0_0_12px_rgba(91,79,233,0.2)]">
+                before they become costly.
+              </span>
+            </span>
           </h1>
           <p className="max-w-xl text-xl leading-8 text-[#6B7280]">
             In just 2 minutes, discover your business risk score and get matched

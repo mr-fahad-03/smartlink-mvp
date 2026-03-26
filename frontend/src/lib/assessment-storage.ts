@@ -26,4 +26,3 @@ export function loadAssessmentSubmission(): AssessmentSubmission | null {
     return null;
   }
 }
-

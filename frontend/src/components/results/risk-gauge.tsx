@@ -10,27 +10,27 @@ function getRiskTone(score: number) {
   if (score >= 75) {
     return {
       label: "Critical Risk",
-      colorClass: "text-danger",
+      colorClass: "text-[#E11D48]",
     };
   }
 
   if (score >= 50) {
     return {
       label: "High Risk",
-      colorClass: "text-danger",
+      colorClass: "text-[#F97316]",
     };
   }
 
   if (score >= 25) {
     return {
       label: "Moderate Risk",
-      colorClass: "text-secondary",
+      colorClass: "text-[#356AF6]",
     };
   }
 
   return {
     label: "Low Risk",
-    colorClass: "text-success",
+    colorClass: "text-[#16A34A]",
   };
 }
 
@@ -56,16 +56,16 @@ export function RiskGauge({ score, label = "Risk Score", className }: RiskGaugeP
         >
           <defs>
             <linearGradient id="risk-gauge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="hsl(160 84% 39%)" />
-              <stop offset="55%" stopColor="hsl(243 75% 59%)" />
-              <stop offset="100%" stopColor="hsl(346 84% 46%)" />
+              <stop offset="0%" stopColor="#16A34A" />
+              <stop offset="50%" stopColor="#356AF6" />
+              <stop offset="100%" stopColor="#F97316" />
             </linearGradient>
           </defs>
           <circle
             cx={center}
             cy={center}
             r={radius}
-            className="stroke-border/70"
+            className="stroke-[#D9E3F3]"
             strokeWidth={strokeWidth}
             fill="transparent"
           />

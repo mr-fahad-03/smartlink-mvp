@@ -1,11 +1,15 @@
 export type RiskLevel = "low" | "moderate" | "high" | "critical";
+export type AssessmentMode = "business-services" | "cybersecurity-risk";
+export type LeadTier = "standard" | "premium";
+export type ExpertVisibilityLevel = "basic" | "featured" | "priority";
+export type MatchingVisibility = "visible" | "priority-only" | "hidden";
 
 export type QuizCategory =
-  | "Network Security"
-  | "Identity & Access Management"
-  | "Endpoint Security"
-  | "Cloud Security"
-  | "Incident Response";
+  | "Business Setup"
+  | "Licenses & Approvals"
+  | "IT & Cybersecurity"
+  | "Accounting & Finance"
+  | "General Business Support";
 
 export interface Option {
   id: string;
@@ -46,14 +50,35 @@ export interface AssessmentResult {
 export interface LeadCaptureInfo {
   fullName: string;
   workEmail: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   companyName: string;
   role: string;
   businessType: string;
   location: string;
   website?: string;
   teamSize: string;
-  consent: boolean;
+  budgetPreference?: string;
+  urgencyPreference?: string;
+  priorConsultingExperience?: string;
+  selectedMapLocation?: string;
+  locationLatitude?: number;
+  locationLongitude?: number;
+}
+
+export interface LeadTrackingRecord {
+  expertId: string;
+  matchScore: number;
+  matchTier: string;
+  leadTier: LeadTier;
+  visibilityLevel: ExpertVisibilityLevel;
+  status: "new" | "contacted" | "qualified";
+}
+
+export interface RankingControlSnapshot {
+  expertId: string;
+  visibilityLevel: ExpertVisibilityLevel;
+  matchingVisibility: MatchingVisibility;
+  rankingWeightBoost: number;
 }
 
 export interface AssessmentResponseItem {
@@ -69,6 +94,8 @@ export interface AssessmentResponseItem {
 export interface AssessmentSubmission {
   assessmentId: string;
   submittedAt: string;
+  assessmentMode: AssessmentMode;
+  leadTier: LeadTier;
   totalQuestions: number;
   answeredQuestions: number;
   totalRiskPoints: number;
@@ -81,6 +108,8 @@ export interface AssessmentSubmission {
   recommendedExpertIds: string[];
   lead: LeadCaptureInfo;
   responses: AssessmentResponseItem[];
+  leadTracking: LeadTrackingRecord[];
+  rankingControlSnapshot: RankingControlSnapshot[];
 }
 
 export interface Expert {
@@ -97,6 +126,9 @@ export interface Expert {
   hourlyRateUsd: number;
   nextAvailableAt: string;
   bio: string;
+  visibilityLevel: ExpertVisibilityLevel;
+  matchingVisibility: MatchingVisibility;
+  rankingWeightBoost: number;
 }
 
 export interface QuizSection {

@@ -4,118 +4,101 @@ import { useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
-  CloudOff,
-  Fingerprint,
-  LaptopMinimalCheck,
-  Network,
+  CircleHelp,
+  Clock3,
+  RotateCcw,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { QuizCategory } from "@/types";
 
-interface ConcernCard {
+interface SituationCard {
   id: string;
   title: string;
   painPoint: string;
   outcome: string;
-  category: QuizCategory;
   icon: LucideIcon;
 }
 
-const concerns: ConcernCard[] = [
+const situations: SituationCard[] = [
   {
-    id: "network-blindspots",
-    title: "Unknown Network Exposures",
-    painPoint: "You are unsure where attackers can enter or move laterally.",
-    outcome: "Surface your highest-risk network gaps first.",
-    category: "Network Security",
-    icon: Network,
-  },
-  {
-    id: "privileged-access-sprawl",
-    title: "Privilege Sprawl",
-    painPoint: "Too many users have long-lived or excessive access rights.",
-    outcome: "Identify where access controls are quietly failing.",
-    category: "Identity & Access Management",
-    icon: Fingerprint,
-  },
-  {
-    id: "device-risk",
-    title: "Unmanaged Endpoints",
-    painPoint: "Laptops and workstations are inconsistent across teams.",
-    outcome: "Pinpoint endpoint controls that need urgent hardening.",
-    category: "Endpoint Security",
-    icon: LaptopMinimalCheck,
-  },
-  {
-    id: "cloud-drift",
-    title: "Cloud Misconfiguration Drift",
-    painPoint: "Cloud permissions and configs keep changing without visibility.",
-    outcome: "Find your most costly cloud security blind spots quickly.",
-    category: "Cloud Security",
-    icon: CloudOff,
-  },
-  {
-    id: "ir-readiness",
-    title: "Slow Incident Response",
-    painPoint: "When alerts hit, ownership and response steps are unclear.",
-    outcome: "Expose response weaknesses before the next incident.",
-    category: "Incident Response",
+    id: "situation_stuck",
+    title: "My application is stuck",
+    painPoint: "You started the process, but progress has slowed or stopped.",
+    outcome: "Start with the questions most likely to unblock you.",
     icon: AlertTriangle,
+  },
+  {
+    id: "situation_start",
+    title: "I don't know where to start",
+    painPoint: "You need clarity before taking the next step.",
+    outcome: "Get a simpler path forward with guided matching.",
+    icon: CircleHelp,
+  },
+  {
+    id: "situation_urgent",
+    title: "I need help urgently",
+    painPoint: "Time matters and you need support quickly.",
+    outcome: "Prioritize fast-response experts and urgent next steps.",
+    icon: Clock3,
+  },
+  {
+    id: "situation_failed",
+    title: "I've already tried but failed",
+    painPoint: "An earlier attempt did not work and you need a better route.",
+    outcome: "Surface stronger-fit experts and a more practical action plan.",
+    icon: RotateCcw,
   },
 ];
 
 export function PreQuizSelector() {
   const router = useRouter();
 
-  const handleSelect = (category: QuizCategory) => {
-    const params = new URLSearchParams({ category });
+  const handleSelect = (situationId: string) => {
+    const params = new URLSearchParams({ situation: situationId });
     router.push(`/quiz?${params.toString()}`);
   };
 
   return (
     <section className="space-y-5">
       <div className="space-y-2">
-        <Badge variant="secondary" className="bg-secondary/20 text-secondary">
-          Pre-Quiz Selector
-        </Badge>
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-          What is hurting your security posture right now?
+        <Badge className="bg-[#EEF3FF] text-[#356AF6]">Pre-Quiz Selector</Badge>
+        <h2 className="text-2xl font-semibold tracking-tight text-[#111827] sm:text-3xl">
+          What are you dealing with right now?
         </h2>
-        <p className="max-w-3xl text-sm text-muted-foreground sm:text-base">
-          Pick your top concern. We will start the quiz with targeted questions
-          for that risk area.
+        <p className="max-w-3xl text-sm text-[#5D6B85] sm:text-base">
+          Pick the option that feels closest to your current situation and we&apos;ll
+          keep the rest of the quiz focused and simple.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {concerns.map((concern) => {
-          const Icon = concern.icon;
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {situations.map((situation, index) => {
+          const Icon = situation.icon;
 
           return (
             <button
-              key={concern.id}
+              key={situation.id}
               type="button"
-              onClick={() => handleSelect(concern.category)}
-              className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              aria-label={`Start quiz with ${concern.category}`}
+              onClick={() => handleSelect(situation.id)}
+              className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#356AF6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F5F8FF]"
+              aria-label={`Start quiz with ${situation.title}`}
             >
-              <Card className="h-full border-border/80 bg-card/80 transition hover:-translate-y-0.5 hover:border-secondary/70 hover:bg-card">
-                <CardHeader className="space-y-3">
+              <Card className="h-full rounded-[26px] border border-[#D9E3F3] bg-white shadow-[0_12px_28px_rgba(56,75,107,0.06)] transition hover:-translate-y-0.5 hover:border-[#BFD0F8] hover:shadow-[0_18px_34px_rgba(56,75,107,0.1)]">
+                <CardHeader className="space-y-4">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary/15 text-secondary">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF3FF] text-[#356AF6]">
                       <Icon className="h-5 w-5" />
                     </div>
-                    <Badge variant="outline" className="border-border text-xs">
-                      {concern.category}
+                    <Badge variant="outline" className="border-[#D9E3F3] text-xs text-[#7B89A2]">
+                      0{index + 1}
                     </Badge>
                   </div>
-                  <CardTitle className="text-lg">{concern.title}</CardTitle>
+                  <CardTitle className="text-lg text-[#111827]">{situation.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  <p className="text-muted-foreground">{concern.painPoint}</p>
-                  <p className="font-medium text-foreground">{concern.outcome}</p>
+                  <p className="text-[#5D6B85]">{situation.painPoint}</p>
+                  <p className="font-medium text-[#111827]">{situation.outcome}</p>
                 </CardContent>
               </Card>
             </button>

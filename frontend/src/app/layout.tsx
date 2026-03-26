@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cybersecurity UI Mockups",
-  description: "UI mockup foundation for Landing, Quiz, Results, and Match screens.",
+  title: "SmartLinkBahamas",
+  description: "SmartLinkBahamas UI mockups for landing, quiz, results, expert match, and admin screens.",
 };
 
 export default function RootLayout({

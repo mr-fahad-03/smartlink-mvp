@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 interface RiskGaugeProps {
   score: number;
   label?: string;
+  toneLabelOverride?: string;
   className?: string;
 }
 
@@ -34,7 +35,12 @@ function getRiskTone(score: number) {
   };
 }
 
-export function RiskGauge({ score, label = "Risk Score", className }: RiskGaugeProps) {
+export function RiskGauge({
+  score,
+  label = "Risk Score",
+  toneLabelOverride,
+  className,
+}: RiskGaugeProps) {
   const safeScore = Math.min(100, Math.max(0, score));
   const size = 220;
   const strokeWidth = 16;
@@ -93,7 +99,7 @@ export function RiskGauge({ score, label = "Risk Score", className }: RiskGaugeP
         </div>
       </div>
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p className={cn("text-sm font-semibold", tone.colorClass)}>{tone.label}</p>
+      <p className={cn("text-sm font-semibold", tone.colorClass)}>{toneLabelOverride ?? tone.label}</p>
     </div>
   );
 }

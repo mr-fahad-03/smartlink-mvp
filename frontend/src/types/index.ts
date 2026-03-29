@@ -3,13 +3,31 @@ export type AssessmentMode = "business-services" | "cybersecurity-risk";
 export type LeadTier = "standard" | "premium";
 export type ExpertVisibilityLevel = "basic" | "featured" | "priority";
 export type MatchingVisibility = "visible" | "priority-only" | "hidden";
+export type AudienceSegment = "business-owner" | "personal-help" | "not-sure";
+export type ResultsFeedbackAnswer = "yes" | "somewhat" | "no";
+export type MissingFeedbackReason = "budget" | "relevance" | "location" | "urgency";
+export type ConnectionStatus = "pending" | "connected" | "not-yet" | "not-connected";
+export type ExpertSubscriptionTier = "basic" | "premium" | "featured";
+export type IntroductionRequestStatus = "submitted" | "reviewed" | "sent-to-expert" | "accepted" | "declined";
+export type ExpertResponseStatus = "pending" | "responded" | "not-responded";
+export type UserActionType =
+  | "expert_match_viewed"
+  | "expert_card_clicked"
+  | "service_selected"
+  | "service_removed"
+  | "introduction_requested"
+  | "expert_match_exited";
 
 export type QuizCategory =
-  | "Business Setup"
-  | "Licenses & Approvals"
-  | "IT & Cybersecurity"
-  | "Accounting & Finance"
-  | "General Business Support";
+  | "Operations"
+  | "Cybersecurity"
+  | "Systems"
+  | "Growth"
+  | "Career Help"
+  | "Financial Advice"
+  | "Legal Help"
+  | "Personal Tech Support"
+  | "General Support";
 
 export interface Option {
   id: string;
@@ -51,18 +69,18 @@ export interface LeadCaptureInfo {
   fullName: string;
   workEmail: string;
   phoneNumber?: string;
-  companyName: string;
-  role: string;
-  businessType: string;
+  audienceSegment?: AudienceSegment;
+  companyName?: string;
+  role?: string;
+  businessType?: string;
   location: string;
+  locationScope?: "bahamas" | "outside-bahamas";
+  island?: string;
   website?: string;
-  teamSize: string;
+  teamSize?: string;
   budgetPreference?: string;
   urgencyPreference?: string;
   priorConsultingExperience?: string;
-  selectedMapLocation?: string;
-  locationLatitude?: number;
-  locationLongitude?: number;
 }
 
 export interface LeadTrackingRecord {
@@ -81,6 +99,68 @@ export interface RankingControlSnapshot {
   rankingWeightBoost: number;
 }
 
+export interface IntroductionRequest {
+  id: string;
+  assessmentId: string;
+  expertId: string;
+  expertName: string;
+  leadName: string;
+  leadEmail: string;
+  leadPhone?: string;
+  requestedAt: string;
+  serviceIds: string[];
+  serviceNames: string[];
+  category: QuizCategory;
+  urgencyLevel?: string;
+  budgetPreference?: string;
+  billable: boolean;
+  leadTier: LeadTier;
+  expertTier: ExpertSubscriptionTier;
+  status: IntroductionRequestStatus;
+}
+
+export interface ExpertPerformanceRecord {
+  expertId: string;
+  expertName: string;
+  subscriptionTier: ExpertSubscriptionTier;
+  leadsReceived: number;
+  introductionRequests: number;
+  clickCount: number;
+  selectionCount: number;
+  responseTimeHours?: number;
+  responseStatus: ExpertResponseStatus;
+}
+
+export interface UserActionEvent {
+  id: string;
+  assessmentId: string;
+  actionType: UserActionType;
+  timestamp: string;
+  expertId?: string;
+  expertName?: string;
+  category?: QuizCategory;
+  urgencyLevel?: string;
+  budgetPreference?: string;
+  dropOffPoint?: string;
+}
+
+export interface LeadsPerCategorySnapshot {
+  category: QuizCategory;
+  count: number;
+}
+
+export interface ConversionIndicatorSnapshot {
+  label: string;
+  value: number;
+}
+
+export interface AdminAnalyticsSnapshot {
+  totalLeadsGenerated: number;
+  leadsPerCategory: LeadsPerCategorySnapshot[];
+  topPerformingExpertIds: string[];
+  conversionIndicators: ConversionIndicatorSnapshot[];
+}
+
 export interface AssessmentResponseItem {
   questionId: string;
   questionText: string;
@@ -89,6 +169,21 @@ export interface AssessmentResponseItem {
   selectedOptionLabel: string;
   selectedOptionText: string;
   selectedOptionRiskPoints: number;
+}
+
+export interface ExpertFeedbackRecord {
+  status?: "positive" | "neutral" | "negative";
+  notes?: string;
+  submittedAt?: string;
+}
+
+export interface FeedbackLoopData {
+  userFeedback?: ResultsFeedbackAnswer;
+  missingReasons?: MissingFeedbackReason[];
+  userFeedbackSubmittedAt?: string;
+  connectionStatus?: ConnectionStatus;
+  connectionCheckedAt?: string;
+  expertFeedback?: ExpertFeedbackRecord;
 }
 
 export interface AssessmentSubmission {
@@ -110,6 +205,11 @@ export interface AssessmentSubmission {
   responses: AssessmentResponseItem[];
   leadTracking: LeadTrackingRecord[];
   rankingControlSnapshot: RankingControlSnapshot[];
+  feedbackLoop?: FeedbackLoopData;
+  introductionRequests?: IntroductionRequest[];
+  expertPerformanceTracking?: ExpertPerformanceRecord[];
+  userActionEvents?: UserActionEvent[];
+  adminAnalyticsSnapshot?: AdminAnalyticsSnapshot;
 }
 
 export interface Expert {
@@ -129,6 +229,7 @@ export interface Expert {
   visibilityLevel: ExpertVisibilityLevel;
   matchingVisibility: MatchingVisibility;
   rankingWeightBoost: number;
+  subscriptionTier?: ExpertSubscriptionTier;
 }
 
 export interface QuizSection {

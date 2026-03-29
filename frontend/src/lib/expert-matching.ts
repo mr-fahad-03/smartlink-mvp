@@ -156,17 +156,17 @@ function scoreBudget(hourlyRateUsd: number, budgetPreference?: string) {
 
 function scoreUrgency(availableWithin48Hours: boolean, availableInHours: number, urgencyPreference?: string) {
   switch (urgencyPreference) {
-    case "Urgent - within 48 hours":
+    case "24-48 hours":
       if (availableWithin48Hours) {
         return { score: 100, reason: "Can respond within your urgent timeline." };
       }
       return { score: 52, reason: "Availability is slower than your urgent timeline." };
-    case "Within 1 week":
+    case "Within a week":
       if (availableInHours <= 168) {
         return { score: 100, reason: "Can support your one-week timeline." };
       }
       return { score: 72, reason: "Availability is reasonable, but not ideal for your timeline." };
-    case "Flexible / exploring":
+    case "Just exploring":
       return {
         score: availableWithin48Hours ? 92 : 82,
         reason: "Your timeline is flexible, so availability remains a strong fit.",
@@ -220,7 +220,7 @@ function scoreCategory(expert: Expert, highestRiskCategory: QuizCategory) {
 
   return {
     score: 58,
-    reason: `Supports adjacent security work, though ${highestRiskCategory} is not the primary specialty.`,
+    reason: `Supports adjacent work, though ${highestRiskCategory} is not the primary specialty.`,
   };
 }
 

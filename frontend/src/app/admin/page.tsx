@@ -86,7 +86,7 @@ const applicationCards = [
 const marketplaceControls = [
   {
     name: "Ana Khan",
-    specialties: "Business Setup, Licenses & Approvals",
+    specialties: "Operations, Growth, Legal Help",
     location: "Nassau",
     trustState: ["Verified", "Featured"],
     visibility: "Visible In Matching",
@@ -96,7 +96,7 @@ const marketplaceControls = [
   },
   {
     name: "Daniel Cho",
-    specialties: "IT & Cybersecurity, General Business Support",
+    specialties: "Cybersecurity, Systems, Personal Tech Support",
     location: "Grand Bahama",
     trustState: ["Verified"],
     visibility: "Priority Only",
@@ -106,7 +106,7 @@ const marketplaceControls = [
   },
   {
     name: "Sofia Ramirez",
-    specialties: "Accounting & Finance, General Business Support",
+    specialties: "Financial Advice, Career Help, Operations",
     location: "Remote / Nassau",
     trustState: ["Featured"],
     visibility: "Visible In Matching",

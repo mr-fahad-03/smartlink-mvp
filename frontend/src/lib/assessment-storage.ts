@@ -26,3 +26,20 @@ export function loadAssessmentSubmission(): AssessmentSubmission | null {
     return null;
   }
 }
+
+export function updateAssessmentSubmission(
+  updater: (current: AssessmentSubmission) => AssessmentSubmission,
+) {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const current = loadAssessmentSubmission();
+  if (!current) {
+    return null;
+  }
+
+  const updated = updater(current);
+  saveAssessmentSubmission(updated);
+  return updated;
+}

@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Briefcase,
   Building2,
-  Globe,
+  Globe2,
   Loader2,
   Mail,
   MapPin,
@@ -26,6 +26,7 @@ import { saveAssessmentSubmission } from "@/lib/assessment-storage";
 import { rankExpertsForSubmission } from "@/lib/expert-matching";
 import { cn } from "@/lib/utils";
 import type {
+  AudienceSegment,
   AssessmentMode,
   AssessmentSubmission,
   LeadTier,
@@ -35,6 +36,7 @@ import type {
 
 interface QuizFlowProps {
   initialSituation?: string;
+  initialAudience?: string;
 }
 
 interface LeadCaptureFormValues {
@@ -44,7 +46,9 @@ interface LeadCaptureFormValues {
   companyName: string;
   role: string;
   businessType: string;
+  locationScope: "bahamas" | "outside-bahamas" | "";
   location: string;
+  island: string;
   website: string;
   teamSize: string;
   priorConsultingExperience: string;
@@ -95,18 +99,52 @@ const BUSINESS_TYPE_OPTIONS = [
 ];
 
 const LOCATION_SUGGESTIONS = [
-  { label: "Nassau, New Providence", detail: "The Bahamas", latitude: 25.047984, longitude: -77.355413 },
-  { label: "Freeport, Grand Bahama", detail: "The Bahamas", latitude: 26.533333, longitude: -78.7 },
-  { label: "Family Islands, Bahamas", detail: "Outer islands", latitude: 24.182105, longitude: -76.439049 },
-  { label: "Outside The Bahamas", detail: "International", latitude: 25.03428, longitude: -77.39628 },
+  { label: "Bay Street, Nassau", detail: "New Providence, The Bahamas", scope: "bahamas" as const, island: "New Providence" },
+  { label: "Cable Beach, Nassau", detail: "New Providence, The Bahamas", scope: "bahamas" as const, island: "New Providence" },
+  { label: "Downtown Freeport", detail: "Grand Bahama, The Bahamas", scope: "bahamas" as const, island: "Grand Bahama" },
+  { label: "Lucaya, Freeport", detail: "Grand Bahama, The Bahamas", scope: "bahamas" as const, island: "Grand Bahama" },
+  { label: "Marsh Harbour", detail: "Abaco, The Bahamas", scope: "bahamas" as const, island: "Abaco" },
+  { label: "George Town", detail: "Exuma, The Bahamas", scope: "bahamas" as const, island: "Exuma" },
+  { label: "Governors Harbour", detail: "Eleuthera, The Bahamas", scope: "bahamas" as const, island: "Eleuthera" },
+  { label: "Outside The Bahamas", detail: "International", scope: "outside-bahamas" as const },
+];
+
+const BAHAMAS_ISLAND_OPTIONS = [
+  "New Providence",
+  "Grand Bahama",
+  "Abaco",
+  "Exuma",
+  "Eleuthera",
+  "Andros",
+  "Long Island",
+  "Bimini",
+  "Cat Island",
+  "Harbour Island",
+  "Berry Islands",
+  "San Salvador",
+  "Acklins",
+  "Crooked Island",
+  "Mayaguana",
+  "Ragged Island",
+  "Other Family Island",
+];
+
+const AUDIENCE_SEGMENTS: { id: AudienceSegment; label: string }[] = [
+  { id: "business-owner", label: "Business owner" },
+  { id: "personal-help", label: "Personal help" },
+  { id: "not-sure", label: "Not sure yet" },
 ];
 
 const HELP_CATEGORY_MAP: Record<string, QuizCategory> = {
-  need_business_setup: "Business Setup",
-  need_licenses: "Licenses & Approvals",
-  need_cybersecurity: "IT & Cybersecurity",
-  need_accounting: "Accounting & Finance",
-  need_other: "General Business Support",
+  need_operations: "Operations",
+  need_cybersecurity: "Cybersecurity",
+  need_systems: "Systems",
+  need_growth: "Growth",
+  need_career_help: "Career Help",
+  need_financial_advice: "Financial Advice",
+  need_legal_help: "Legal Help",
+  need_personal_tech_support: "Personal Tech Support",
+  need_general_support: "General Support",
 };
 
 const SITUATION_OPTIONS: QuizOption[] = [
@@ -114,14 +152,34 @@ const SITUATION_OPTIONS: QuizOption[] = [
   { id: "situation_start", label: "I don't know where to start", text: "I don't know where to start", support: "You need a clearer path before taking the next step.", riskPoints: 4 },
   { id: "situation_urgent", label: "I need help urgently", text: "I need help urgently", support: "Time matters and you need support quickly.", riskPoints: 8 },
   { id: "situation_failed", label: "I tried before but it didn't work", text: "I tried before but it didn't work", support: "You need a stronger plan after an earlier failed attempt.", riskPoints: 7 },
+  { id: "situation_not_working", label: "Something isn't working but I'm not sure why", text: "Something isn't working but I'm not sure why", support: "You need clarity before things get worse.", riskPoints: 5 },
+  { id: "situation_need_advice", label: "I need expert advice before making a decision", text: "I need expert advice before making a decision", support: "You want confidence before the next move.", riskPoints: 4 },
 ];
 
-const HELP_OPTIONS: QuizOption[] = [
-  { id: "need_business_setup", label: "Business setup", text: "Business setup", support: "Registration, getting started, and setup guidance.", riskPoints: 3 },
-  { id: "need_licenses", label: "Licenses / approvals", text: "Licenses / approvals", support: "Applications, approvals, renewals, and process delays.", riskPoints: 4 },
-  { id: "need_cybersecurity", label: "IT / cybersecurity", text: "IT / cybersecurity", support: "Practical help with protection, backups, and recovery.", riskPoints: 6 },
-  { id: "need_accounting", label: "Accounting / finance", text: "Accounting / finance", support: "Books, reporting, compliance, and finance workflows.", riskPoints: 3 },
-  { id: "need_other", label: "Other", text: "Other", support: "General business support not covered above.", riskPoints: 3 },
+const BUSINESS_HELP_OPTIONS: QuizOption[] = [
+  { id: "need_operations", label: "Operations", text: "Operations", support: "Help with processes, execution, and bottlenecks.", riskPoints: 4 },
+  { id: "need_cybersecurity", label: "Cybersecurity", text: "Cybersecurity", support: "Protection, backups, and recovery readiness.", riskPoints: 6 },
+  { id: "need_systems", label: "Systems", text: "Systems", support: "Support for tools, workflows, and business systems.", riskPoints: 4 },
+  { id: "need_growth", label: "Growth", text: "Growth", support: "Strategy, traction, and smarter next moves.", riskPoints: 3 },
+];
+
+const INDIVIDUAL_HELP_OPTIONS: QuizOption[] = [
+  { id: "need_career_help", label: "Career help", text: "Career help", support: "Direction, opportunities, and practical support.", riskPoints: 3 },
+  { id: "need_financial_advice", label: "Financial advice", text: "Financial advice", support: "Planning, money decisions, and financial clarity.", riskPoints: 4 },
+  { id: "need_legal_help", label: "Legal help", text: "Legal help", support: "Personal legal guidance and support.", riskPoints: 5 },
+  { id: "need_personal_tech_support", label: "Personal tech support", text: "Personal tech support", support: "Device, account, and everyday technology help.", riskPoints: 4 },
+];
+
+const NOT_SURE_HELP_OPTIONS: QuizOption[] = [
+  { id: "need_operations", label: "Business / operations", text: "Business / operations", support: "For process, execution, or workflow issues.", riskPoints: 4 },
+  { id: "need_cybersecurity", label: "Cybersecurity / tech", text: "Cybersecurity / tech", support: "For online protection, recovery, or tech concerns.", riskPoints: 5 },
+  { id: "need_financial_advice", label: "Financial advice", text: "Financial advice", support: "For money, planning, or financial decisions.", riskPoints: 4 },
+  { id: "need_legal_help", label: "Legal help", text: "Legal help", support: "For legal guidance and next steps.", riskPoints: 5 },
+];
+
+const ALL_HELP_OPTIONS: QuizOption[] = [
+  ...BUSINESS_HELP_OPTIONS,
+  ...INDIVIDUAL_HELP_OPTIONS,
 ];
 
 const LOCATION_OPTIONS: QuizOption[] = [
@@ -152,38 +210,32 @@ const PRIOR_EXPERIENCE_OPTIONS = [
 ];
 
 const CYBER_CHECK_PROMPTS: QuizPrompt[] = [
-  { id: "cyber_accounts", text: "Do you have a way to protect your business accounts?", helper: "Keep it simple. Just choose the option that feels most true today.", category: "IT & Cybersecurity", options: [
+  { id: "cyber_accounts", text: "Do you have a way to protect your business accounts?", helper: "Keep it simple. Just choose the option that feels most true today.", category: "Cybersecurity", options: [
     { id: "cyber_accounts_yes", label: "Yes", text: "Yes, we have protection in place", support: "Good starting point.", riskPoints: 0 },
     { id: "cyber_accounts_some", label: "Some protection", text: "Some protection, but not consistently", support: "There are partial gaps.", riskPoints: 4 },
     { id: "cyber_accounts_no", label: "No / not sure", text: "No or not sure", support: "This may need urgent attention.", riskPoints: 8 },
   ] },
-  { id: "cyber_backup", text: "Do you regularly back up your data?", helper: "This helps us understand how easily you could recover if something went wrong.", category: "IT & Cybersecurity", options: [
+  { id: "cyber_backup", text: "Do you regularly back up your data?", helper: "This helps us understand how easily you could recover if something went wrong.", category: "Cybersecurity", options: [
     { id: "cyber_backup_yes", label: "Yes", text: "Yes, regularly", support: "Recovery is more likely to be faster.", riskPoints: 0 },
     { id: "cyber_backup_some", label: "Sometimes", text: "Sometimes", support: "There may still be recovery gaps.", riskPoints: 4 },
     { id: "cyber_backup_no", label: "No / not sure", text: "No or not sure", support: "This is often a major risk area.", riskPoints: 8 },
   ] },
-  { id: "cyber_virus", text: "Do you have protection against viruses?", helper: "We are checking everyday practical protection, not technical setups.", category: "IT & Cybersecurity", options: [
+  { id: "cyber_virus", text: "Do you have protection against viruses?", helper: "We are checking everyday practical protection, not technical setups.", category: "Cybersecurity", options: [
     { id: "cyber_virus_yes", label: "Yes", text: "Yes", support: "Good baseline protection.", riskPoints: 0 },
     { id: "cyber_virus_some", label: "Some protection", text: "Some protection", support: "Coverage may be inconsistent.", riskPoints: 4 },
     { id: "cyber_virus_no", label: "No / not sure", text: "No or not sure", support: "This can increase exposure quickly.", riskPoints: 8 },
   ] },
-  { id: "cyber_hacking", text: "Do you have protection against hacking?", helper: "Think about whether your business has clear protective measures in place.", category: "IT & Cybersecurity", options: [
+  { id: "cyber_hacking", text: "Do you have protection against hacking?", helper: "Think about whether your business has clear protective measures in place.", category: "Cybersecurity", options: [
     { id: "cyber_hacking_yes", label: "Yes", text: "Yes", support: "There is some active protection in place.", riskPoints: 0 },
     { id: "cyber_hacking_some", label: "Some protection", text: "Some protection", support: "You may still have important gaps.", riskPoints: 4 },
     { id: "cyber_hacking_no", label: "No / not sure", text: "No or not sure", support: "This suggests a higher exposure level.", riskPoints: 8 },
   ] },
-  { id: "cyber_recovery", text: "If something went wrong today, could you recover quickly?", helper: "We want to understand how resilient your business feels right now.", category: "IT & Cybersecurity", options: [
+  { id: "cyber_recovery", text: "If something went wrong today, could you recover quickly?", helper: "We want to understand how resilient your business feels right now.", category: "Cybersecurity", options: [
     { id: "cyber_recovery_yes", label: "Yes", text: "Yes, we could recover quickly", support: "Recovery confidence is strong.", riskPoints: 0 },
     { id: "cyber_recovery_some", label: "Maybe", text: "Maybe, but it would be difficult", support: "Recovery may be slower than you want.", riskPoints: 4 },
     { id: "cyber_recovery_no", label: "No / not sure", text: "No or not sure", support: "Recovery readiness likely needs help.", riskPoints: 8 },
   ] },
 ];
-
-function getMapEmbedUrl(latitude: number, longitude: number) {
-  const offset = 0.12;
-  const bbox = [longitude - offset, latitude - offset, longitude + offset, latitude + offset].join("%2C");
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${latitude}%2C${longitude}`;
-}
 
 function toStoredRiskLevel(percentage: number): StoredRiskLevel {
   if (percentage >= 75) return "critical";
@@ -209,41 +261,68 @@ function getRiskLevelClasses(riskLevel: DisplayRiskLevel): string {
 function getSelectedOption(options: QuizOption[], selectedId?: string) {
   return options.find((option) => option.id === selectedId);
 }
-function getBasePrompts(selectedCategory: QuizCategory): QuizPrompt[] {
+
+function getHelpOptionsForAudience(audience?: AudienceSegment) {
+  if (audience === "personal-help") return INDIVIDUAL_HELP_OPTIONS;
+  if (audience === "not-sure") return NOT_SURE_HELP_OPTIONS;
+  return BUSINESS_HELP_OPTIONS;
+}
+
+function getBasePrompts(selectedCategory: QuizCategory, audience?: AudienceSegment): QuizPrompt[] {
+  const helpOptions = getHelpOptionsForAudience(audience);
+
   return [
-    { id: "situation_now", text: "What situation are you in right now?", helper: "Pick the statement that feels closest to what you're dealing with.", category: "General Business Support", options: SITUATION_OPTIONS },
-    { id: "problem_need", text: "What problem do you need solved?", helper: "This keeps the rest of the flow focused and simple.", category: selectedCategory, options: HELP_OPTIONS },
+    { id: "situation_now", text: "What situation are you in right now?", helper: "Pick the statement that feels closest to what you're dealing with.", category: "General Support", options: SITUATION_OPTIONS },
+    { id: "problem_need", text: "What problem do you need solved?", helper: "This keeps the rest of the flow focused and simple.", category: selectedCategory, options: helpOptions },
     { id: "location", text: "Where are you located?", helper: "We use this to prioritize nearby or remote-friendly experts.", category: selectedCategory, options: LOCATION_OPTIONS },
     { id: "urgency", text: "How soon do you need help?", helper: "This helps us prioritize response time and shortlist the right providers.", category: selectedCategory, options: URGENCY_OPTIONS },
     { id: "budget", text: "What budget range are you working with?", helper: "A quick range helps us keep the recommendations practical.", category: selectedCategory, options: BUDGET_OPTIONS },
   ];
 }
 
-function buildQuizPrompts(selectedHelpId?: string): QuizPrompt[] {
-  const selectedCategory = HELP_CATEGORY_MAP[selectedHelpId ?? ""] ?? "General Business Support";
-  const basePrompts = getBasePrompts(selectedCategory);
+function buildQuizPrompts(selectedHelpId?: string, audience?: AudienceSegment): QuizPrompt[] {
+  const selectedCategory = HELP_CATEGORY_MAP[selectedHelpId ?? ""] ?? "General Support";
+  const basePrompts = getBasePrompts(selectedCategory, audience);
   if (selectedHelpId !== "need_cybersecurity") return basePrompts;
   return [basePrompts[0], basePrompts[1], ...CYBER_CHECK_PROMPTS, basePrompts[2], basePrompts[3], basePrompts[4]];
 }
 
-function getLocationSuggestion(value?: string) {
-  if (!value) return undefined;
-  const normalized = value.trim().toLowerCase();
-  return LOCATION_SUGGESTIONS.find((item) => item.label.toLowerCase() === normalized);
-}
+function getLocationSuggestions(value?: string, scope?: "bahamas" | "outside-bahamas" | "") {
+  const scopedSuggestions = scope
+    ? LOCATION_SUGGESTIONS.filter((item) => item.scope === scope)
+    : LOCATION_SUGGESTIONS;
 
-function getLocationSuggestions(value?: string) {
-  if (!value?.trim()) return LOCATION_SUGGESTIONS;
+  if (!value?.trim()) return scopedSuggestions;
   const normalized = value.trim().toLowerCase();
-  return LOCATION_SUGGESTIONS.filter(
+  return scopedSuggestions.filter(
     (item) =>
       item.label.toLowerCase().includes(normalized) ||
       item.detail.toLowerCase().includes(normalized),
   );
 }
 
+function deriveLeadLocationDefaults(selectedLocationId?: string) {
+  if (selectedLocationId === "location_nassau") {
+    return { locationScope: "bahamas" as const, island: "New Providence", location: "Nassau, New Providence" };
+  }
+
+  if (selectedLocationId === "location_grand_bahama") {
+    return { locationScope: "bahamas" as const, island: "Grand Bahama", location: "Freeport, Grand Bahama" };
+  }
+
+  if (selectedLocationId === "location_family_islands") {
+    return { locationScope: "bahamas" as const, island: "", location: "" };
+  }
+
+  if (selectedLocationId === "location_outside") {
+    return { locationScope: "outside-bahamas" as const, island: "", location: "" };
+  }
+
+  return { locationScope: "" as const, island: "", location: "" };
+}
+
 function deriveAssessmentMode(category: QuizCategory): AssessmentMode {
-  return category === "IT & Cybersecurity" ? "cybersecurity-risk" : "business-services";
+  return category === "Cybersecurity" ? "cybersecurity-risk" : "business-services";
 }
 
 function deriveLeadTier(
@@ -253,7 +332,7 @@ function deriveLeadTier(
   budgetPreference?: string,
 ): LeadTier {
   if (
-    category === "IT & Cybersecurity" ||
+    category === "Cybersecurity" ||
     normalizedScore >= 60 ||
     urgencyPreference === "24-48 hours" ||
     budgetPreference === "$176-$200/hour" ||
@@ -266,23 +345,27 @@ function deriveLeadTier(
 }
 
 function buildPriorityActions(category: QuizCategory, answers: Record<string, string>): string[] {
-  if (category === "IT & Cybersecurity") {
+  if (category === "Cybersecurity") {
     const actions: string[] = [];
     if (answers.cyber_accounts === "cyber_accounts_no" || answers.cyber_accounts === "cyber_accounts_some") actions.push("Strengthen protection for business accounts so sign-ins are harder to compromise.");
     if (answers.cyber_backup === "cyber_backup_no" || answers.cyber_backup === "cyber_backup_some") actions.push("Set up a reliable backup routine so important data can be recovered quickly.");
     if (answers.cyber_virus === "cyber_virus_no" || answers.cyber_virus === "cyber_virus_some") actions.push("Put stronger virus protection in place across the devices your business relies on.");
     if (answers.cyber_hacking === "cyber_hacking_no" || answers.cyber_hacking === "cyber_hacking_some") actions.push("Review your current protection against hacking and close the biggest gaps first.");
     if (answers.cyber_recovery === "cyber_recovery_no" || answers.cyber_recovery === "cyber_recovery_some") actions.push("Build a simple recovery plan so the business can get back on track faster after a problem.");
-    return actions.slice(0, 3);
+    return actions.length > 0 ? actions.slice(0, 3) : ["Keep protections current and review backup and recovery readiness regularly."];
   }
-  if (category === "Business Setup") return ["Clarify the exact setup path so you stop losing time on the wrong next step.", "Prepare the required documents in the right order before starting new submissions.", "Connect with a business setup advisor who can unblock the process quickly."];
-  if (category === "Licenses & Approvals") return ["Identify which approval or license step is currently causing the delay.", "Review the submission requirements before resubmitting or following up.", "Match with an approvals expert who understands the fastest path forward."];
-  if (category === "Accounting & Finance") return ["Pinpoint the financial or reporting issue creating the most operational drag.", "Organize the records and information needed before engaging the right advisor.", "Start with an accounting expert who can help restore clarity and control quickly."];
-  return ["Clarify the immediate blocker so the right support path is obvious.", "Prioritize the next practical action instead of trying to solve everything at once.", "Connect with a general business expert who can help you move forward faster."];
+  if (category === "Operations") return ["Identify the workflow or blocker slowing progress most.", "Reduce friction in the current process before adding more complexity.", "Connect with an operations-focused expert who can help you move faster."];
+  if (category === "Systems") return ["Pinpoint the tool, system, or setup causing the most drag.", "Simplify the current setup before layering on more tools.", "Match with a systems expert who can improve reliability and clarity."];
+  if (category === "Growth") return ["Clarify the next growth priority before spreading effort too thin.", "Focus on the move that creates the most traction first.", "Connect with a growth advisor who can turn uncertainty into a practical plan."];
+  if (category === "Career Help") return ["Clarify the next career move before taking scattered action.", "Focus on the strongest opportunity path first.", "Connect with a career advisor who can help you move with more confidence."];
+  if (category === "Financial Advice") return ["Identify the money decision causing the most stress or uncertainty.", "Get clear on priorities before making the next financial move.", "Connect with a financial advisor who can help you make the next step practical."];
+  if (category === "Legal Help") return ["Clarify the legal issue that needs attention first.", "Gather the key facts and documents before taking the next step.", "Connect with a legal expert who can help you move forward clearly."];
+  if (category === "Personal Tech Support") return ["Pinpoint the device, account, or setup issue causing the most disruption.", "Start with the fastest practical fix before trying multiple workarounds.", "Connect with a tech support expert who can solve the issue quickly."];
+  return ["Clarify the immediate blocker so the right support path is obvious.", "Prioritize the next practical action instead of trying to solve everything at once.", "Connect with the right expert to move forward faster."];
 }
 
 function calculateAssessment(prompts: QuizPrompt[], answers: Record<string, string>, selectedCategory: QuizCategory) {
-  const includedPromptIds = selectedCategory === "IT & Cybersecurity" ? prompts.map((prompt) => prompt.id) : ["situation_now", "problem_need", "urgency", "budget"];
+  const includedPromptIds = selectedCategory === "Cybersecurity" ? prompts.map((prompt) => prompt.id) : ["situation_now", "problem_need", "urgency", "budget"];
   const includedPrompts = prompts.filter((prompt) => includedPromptIds.includes(prompt.id));
   const totalRiskPoints = includedPrompts.reduce((sum, prompt) => {
     const selectedOption = getSelectedOption(prompt.options, answers[prompt.id]);
@@ -293,11 +376,12 @@ function calculateAssessment(prompts: QuizPrompt[], answers: Record<string, stri
   return { totalRiskPoints, maxRiskPoints, normalizedScore };
 }
 
-export function QuizFlow({ initialSituation }: QuizFlowProps) {
+export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   const router = useRouter();
   const reducedMotion = useReducedMotion();
   const nextQuestionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const locationBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [answers, setAnswers] = useState<Record<string, string>>(() => {
     if (initialSituation && SITUATION_OPTIONS.some((option) => option.id === initialSituation)) {
@@ -311,6 +395,7 @@ export function QuizFlow({ initialSituation }: QuizFlowProps) {
   );
   const [flowStep, setFlowStep] = useState<FlowStep>("quiz");
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isLocationSuggestionsOpen, setIsLocationSuggestionsOpen] = useState(false);
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<LeadCaptureFormValues>({
     defaultValues: {
@@ -320,7 +405,9 @@ export function QuizFlow({ initialSituation }: QuizFlowProps) {
       companyName: "",
       role: "",
       businessType: "",
+      locationScope: "",
       location: "",
+      island: "",
       website: "",
       teamSize: "",
       priorConsultingExperience: "",
@@ -331,12 +418,18 @@ export function QuizFlow({ initialSituation }: QuizFlowProps) {
     return () => {
       if (nextQuestionTimeout.current) clearTimeout(nextQuestionTimeout.current);
       if (loadingTimeout.current) clearTimeout(loadingTimeout.current);
+      if (locationBlurTimeout.current) clearTimeout(locationBlurTimeout.current);
     };
   }, []);
 
+  const selectedAudience = AUDIENCE_SEGMENTS.some((segment) => segment.id === initialAudience)
+    ? (initialAudience as AudienceSegment)
+    : undefined;
+  const currentAudience = selectedAudience ?? "business-owner";
   const selectedHelpId = answers.problem_need;
-  const selectedCategory = HELP_CATEGORY_MAP[selectedHelpId ?? ""] ?? "General Business Support";
-  const prompts = useMemo(() => buildQuizPrompts(selectedHelpId), [selectedHelpId]);
+  const selectedAudienceLabel = AUDIENCE_SEGMENTS.find((segment) => segment.id === selectedAudience)?.label;
+  const selectedCategory = HELP_CATEGORY_MAP[selectedHelpId ?? ""] ?? "General Support";
+  const prompts = useMemo(() => buildQuizPrompts(selectedHelpId, currentAudience), [selectedHelpId, currentAudience]);
   const totalQuestions = prompts.length;
   const answeredCount = prompts.filter((prompt) => Boolean(answers[prompt.id])).length;
   const currentPrompt = prompts[currentIndex];
@@ -349,22 +442,30 @@ export function QuizFlow({ initialSituation }: QuizFlowProps) {
   }, [currentIndex, flowStep, prompts.length]);
 
   useEffect(() => {
-    const selectedLocation = getSelectedOption(LOCATION_OPTIONS, answers.location);
-    if (selectedLocation?.text) setValue("location", selectedLocation.text, { shouldDirty: true });
+    const defaults = deriveLeadLocationDefaults(answers.location);
+    if (!defaults.locationScope) return;
+    setValue("locationScope", defaults.locationScope, { shouldDirty: true });
+    setValue("location", defaults.location, { shouldDirty: true });
+    setValue("island", defaults.island, { shouldDirty: true });
   }, [answers.location, setValue]);
 
+  const locationScope = watch("locationScope");
   const leadLocationValue = watch("location");
-  const selectedLocationSuggestion = getLocationSuggestion(leadLocationValue);
+  const selectedIsland = watch("island");
   const filteredLocationSuggestions = useMemo(
-    () => getLocationSuggestions(leadLocationValue).slice(0, 5),
-    [leadLocationValue],
+    () => getLocationSuggestions(leadLocationValue, locationScope).slice(0, 5),
+    [leadLocationValue, locationScope],
   );
-  const shouldShowLocationSuggestions =
-    Boolean(leadLocationValue?.trim()) && !selectedLocationSuggestion;
-  const mapPreviewLocation = selectedLocationSuggestion ?? filteredLocationSuggestions[0];
   const assessmentMode = deriveAssessmentMode(selectedCategory);
+  const isBusinessAudience = currentAudience === "business-owner";
   const modeLabel =
-    assessmentMode === "cybersecurity-risk" ? "Cybersecurity Risk Mode" : "Business Services Mode";
+    assessmentMode === "cybersecurity-risk"
+      ? "Cybersecurity Risk Mode"
+      : currentAudience === "personal-help"
+        ? "Personal Support Mode"
+        : currentAudience === "not-sure"
+          ? "Guided Support Mode"
+          : "Business Services Mode";
   const currentViewLabel = flowStep === "quiz" ? `Question ${Math.min(currentIndex + 1, totalQuestions)} of ${totalQuestions}` : flowStep === "cyberIntro" ? "Quick Setup Check" : flowStep === "lead" ? "Lead Capture" : "Building Results";
   const stepLabel = flowStep === "quiz" || flowStep === "cyberIntro" ? "Step 1 of 3" : flowStep === "lead" ? "Step 2 of 3" : "Step 3 of 3";
   const nextStepLabel = flowStep === "quiz"
@@ -379,12 +480,35 @@ export function QuizFlow({ initialSituation }: QuizFlowProps) {
         ? "Submit your details to view results and matched experts."
         : "You will be redirected to your personalized results page.";
 
-  const handleLocationSelect = (label: string) => {
-    setValue("location", label, {
-      shouldDirty: true,
-      shouldValidate: true,
-      shouldTouch: true,
-    });
+  useEffect(() => {
+    if (locationScope !== "bahamas") {
+      setValue("island", "", { shouldDirty: true });
+    }
+  }, [locationScope, setValue]);
+
+  const handleLocationSuggestionSelect = (suggestion: (typeof LOCATION_SUGGESTIONS)[number]) => {
+    setValue("location", suggestion.label, { shouldDirty: true, shouldValidate: true });
+    if (suggestion.scope === "bahamas") {
+      setValue("locationScope", "bahamas", { shouldDirty: true, shouldValidate: true });
+      if (suggestion.island) {
+        setValue("island", suggestion.island, { shouldDirty: true, shouldValidate: true });
+      }
+    } else {
+      setValue("locationScope", "outside-bahamas", { shouldDirty: true, shouldValidate: true });
+      setValue("island", "", { shouldDirty: true, shouldValidate: true });
+    }
+    setIsLocationSuggestionsOpen(false);
+  };
+
+  const handleLocationFocus = () => {
+    if (locationBlurTimeout.current) clearTimeout(locationBlurTimeout.current);
+    setIsLocationSuggestionsOpen(true);
+  };
+
+  const handleLocationBlur = () => {
+    locationBlurTimeout.current = setTimeout(() => {
+      setIsLocationSuggestionsOpen(false);
+    }, 140);
   };
 
   const handleOptionSelect = (prompt: QuizPrompt, option: QuizOption) => {
@@ -423,6 +547,12 @@ export function QuizFlow({ initialSituation }: QuizFlowProps) {
       maxRiskPoints: assessment.maxRiskPoints,
       riskLevel: toStoredRiskLevel(assessment.normalizedScore),
     }];
+    const fallbackQuizLocation = getSelectedOption(LOCATION_OPTIONS, answers.location)?.text;
+    const baseLocation = values.location.trim() || fallbackQuizLocation || "Not provided";
+    const resolvedLocation =
+      values.locationScope === "bahamas" && values.island && !baseLocation.toLowerCase().includes(values.island.toLowerCase())
+        ? `${baseLocation}, ${values.island}`
+        : baseLocation;
 
     const responses = prompts.map((prompt) => {
       const selectedOption = getSelectedOption(prompt.options, answers[prompt.id]);
@@ -457,18 +587,18 @@ export function QuizFlow({ initialSituation }: QuizFlowProps) {
         fullName: values.fullName.trim(),
         workEmail: values.workEmail.trim(),
         phoneNumber: values.phoneNumber.trim() || undefined,
-        companyName: values.companyName.trim(),
-        role: values.role,
-        businessType: values.businessType,
-        location: values.location.trim(),
-        website: values.website.trim() || undefined,
-        teamSize: values.teamSize,
+        audienceSegment: selectedAudience,
+        companyName: values.companyName.trim() || undefined,
+        role: values.role || undefined,
+        businessType: values.businessType || undefined,
+        location: resolvedLocation,
+        locationScope: values.locationScope || undefined,
+        island: values.locationScope === "bahamas" ? values.island || undefined : undefined,
+        website: values.website?.trim() || undefined,
+        teamSize: values.teamSize || undefined,
         budgetPreference,
         urgencyPreference,
-        priorConsultingExperience: values.priorConsultingExperience,
-        selectedMapLocation: selectedLocationSuggestion?.label,
-        locationLatitude: selectedLocationSuggestion?.latitude,
-        locationLongitude: selectedLocationSuggestion?.longitude,
+        priorConsultingExperience: values.priorConsultingExperience || undefined,
       },
       responses,
       leadTracking: [],
@@ -592,8 +722,9 @@ export function QuizFlow({ initialSituation }: QuizFlowProps) {
               <div className="rounded-[28px] border border-[#D9E3F3] bg-white p-5 shadow-[0_14px_34px_rgba(56,75,107,0.08)]">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">Current Snapshot</p>
                 <div className="mt-4 grid gap-3">
+                  {selectedAudienceLabel ? <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Audience</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedAudienceLabel}</p></div> : null}
                   <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Situation</p><p className="mt-2 text-sm font-semibold text-[#111827]">{getSelectedOption(SITUATION_OPTIONS, answers.situation_now)?.text || "Not selected yet"}</p></div>
-                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Help Needed</p><p className="mt-2 text-sm font-semibold text-[#111827]">{getSelectedOption(HELP_OPTIONS, answers.problem_need)?.text || "Not selected yet"}</p></div>
+                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Help Needed</p><p className="mt-2 text-sm font-semibold text-[#111827]">{getSelectedOption(ALL_HELP_OPTIONS, answers.problem_need)?.text || "Not selected yet"}</p></div>
                   <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Location</p><p className="mt-2 text-sm font-semibold text-[#111827]">{getSelectedOption(LOCATION_OPTIONS, answers.location)?.text || "Not selected yet"}</p></div>
                   <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Urgency</p><p className="mt-2 text-sm font-semibold text-[#111827]">{getSelectedOption(URGENCY_OPTIONS, answers.urgency)?.text || "Not selected yet"}</p></div>
                 </div>
@@ -621,47 +752,313 @@ export function QuizFlow({ initialSituation }: QuizFlowProps) {
                   <p className="mt-3 text-sm leading-7 text-[#5D6B85]">You&apos;ve completed the quiz. Add your details below and we&apos;ll unlock your results and matched expert recommendations.</p>
                   <div className="mt-6 space-y-3">
                     {[
-                      `Help needed: ${getSelectedOption(HELP_OPTIONS, answers.problem_need)?.text || "Not selected"}`,
+                      selectedAudienceLabel ? `Audience: ${selectedAudienceLabel}` : null,
+                      `Help needed: ${getSelectedOption(ALL_HELP_OPTIONS, answers.problem_need)?.text || "Not selected"}`,
                       `Urgency: ${getSelectedOption(URGENCY_OPTIONS, answers.urgency)?.text || "Not selected"}`,
                       `Budget: ${getSelectedOption(BUDGET_OPTIONS, answers.budget)?.text || "Not selected"}`,
                       `Current priority: ${selectedCategory}`,
-                    ].map((item) => <div key={item} className="rounded-2xl border border-[#D9E3F3] bg-white px-4 py-3 text-sm font-medium text-[#111827]">{item}</div>)}
+                    ].filter((item): item is string => Boolean(item)).map((item) => <div key={item} className="rounded-2xl border border-[#D9E3F3] bg-white px-4 py-3 text-sm font-medium text-[#111827]">{item}</div>)}
                   </div>
-                  {mapPreviewLocation ? (
-                    <div className="mt-6 rounded-2xl border border-[#D9E3F3] bg-white p-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">Map Preview</p>
-                      <p className="mt-1 text-sm font-medium text-[#111827]">{mapPreviewLocation.label}</p>
-                      <p className="mt-1 text-xs text-[#7B89A2]">{mapPreviewLocation.detail}</p>
-                      <div className="mt-3 overflow-hidden rounded-2xl border border-[#D9E3F3]"><iframe title={`Map preview for ${mapPreviewLocation.label}`} src={getMapEmbedUrl(mapPreviewLocation.latitude, mapPreviewLocation.longitude)} className="h-56 w-full" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div>
+                  <div className="mt-6 rounded-2xl border border-[#D9E3F3] bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">Location Notes</p>
+                    <div className="mt-3 space-y-3">
+                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] px-4 py-3">
+                        <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Region</p>
+                        <p className="mt-1 text-sm font-semibold text-[#111827]">
+                          {locationScope === "bahamas"
+                            ? "Located in The Bahamas"
+                            : locationScope === "outside-bahamas"
+                              ? "Outside The Bahamas"
+                              : "Choose your region"}
+                        </p>
+                      </div>
+                      {locationScope === "bahamas" ? (
+                        <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] px-4 py-3">
+                          <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Island</p>
+                          <p className="mt-1 text-sm font-semibold text-[#111827]">{selectedIsland || "Select your island"}</p>
+                        </div>
+                      ) : null}
+                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] px-4 py-3">
+                        <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Address</p>
+                        <p className="mt-1 text-sm font-semibold text-[#111827]">{leadLocationValue || "Start typing your address"}</p>
+                      </div>
                     </div>
-                  ) : null}
+                  </div>
                 </div>
                 <form onSubmit={handleSubmit(handleLeadCaptureSubmit)} className="space-y-5 rounded-[26px] border border-[#D9E3F3] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-6" noValidate>
                   <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">Contact Details</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">
+                      {isBusinessAudience ? "Primary Contact" : "Personal Details"}
+                    </p>
                     <div className="mt-3 space-y-4">
-                      <div className="space-y-1.5"><label htmlFor="fullName" className="text-sm font-medium text-[#111827]">Name</label><div className="relative"><User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input id="fullName" type="text" placeholder="Enter your full name" className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-11 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15" {...register("fullName", { required: "Name is required.", minLength: { value: 2, message: "Please enter at least 2 characters." } })} /></div>{errors.fullName ? <p className="text-xs text-rose-600">{errors.fullName.message}</p> : null}</div>
-                      <div className="space-y-1.5"><label htmlFor="workEmail" className="text-sm font-medium text-[#111827]">Email</label><div className="relative"><Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input id="workEmail" type="email" placeholder="name@company.com" className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-11 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15" {...register("workEmail", { required: "Email is required.", pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Please enter a valid email address." } })} /></div>{errors.workEmail ? <p className="text-xs text-rose-600">{errors.workEmail.message}</p> : null}</div>
-                      <div className="space-y-1.5"><div className="flex items-center justify-between gap-3"><label htmlFor="phoneNumber" className="text-sm font-medium text-[#111827]">Phone</label><span className="text-xs font-medium text-[#7B89A2]">Optional but recommended</span></div><div className="relative"><Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input id="phoneNumber" type="tel" placeholder="+1 (242) 555-0123" className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-11 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15" {...register("phoneNumber", { validate: (value) => !value || value.trim().length >= 7 || "Please enter a valid phone number." })} /></div>{errors.phoneNumber ? <p className="text-xs text-rose-600">{errors.phoneNumber.message}</p> : null}</div>
+                      <div className="space-y-1.5">
+                        <label htmlFor="fullName" className="text-sm font-medium text-[#111827]">
+                          {isBusinessAudience ? "Primary Contact Name" : "Name"}
+                        </label>
+                        <div className="relative">
+                          <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                          <input
+                            id="fullName"
+                            type="text"
+                            placeholder={isBusinessAudience ? "Enter primary contact name" : "Enter your full name"}
+                            className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-11 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15"
+                            {...register("fullName", {
+                              required: isBusinessAudience ? "Primary contact name is required." : "Name is required.",
+                              minLength: { value: 2, message: "Please enter at least 2 characters." },
+                            })}
+                          />
+                        </div>
+                        {errors.fullName ? <p className="text-xs text-rose-600">{errors.fullName.message}</p> : null}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="workEmail" className="text-sm font-medium text-[#111827]">
+                          {isBusinessAudience ? "Primary Contact Email" : "Email"}
+                        </label>
+                        <div className="relative">
+                          <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                          <input
+                            id="workEmail"
+                            type="email"
+                            placeholder={isBusinessAudience ? "contact@company.com" : "name@email.com"}
+                            className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-11 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15"
+                            {...register("workEmail", {
+                              required: isBusinessAudience ? "Primary contact email is required." : "Email is required.",
+                              pattern: {
+                                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                                message: "Please enter a valid email address.",
+                              },
+                            })}
+                          />
+                        </div>
+                        {errors.workEmail ? <p className="text-xs text-rose-600">{errors.workEmail.message}</p> : null}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-3">
+                          <label htmlFor="phoneNumber" className="text-sm font-medium text-[#111827]">
+                            {isBusinessAudience ? "Primary Contact Phone" : "Phone"}
+                          </label>
+                          <span className="text-xs font-medium text-[#7B89A2]">Optional</span>
+                        </div>
+                        <div className="relative">
+                          <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                          <input
+                            id="phoneNumber"
+                            type="tel"
+                            placeholder="+1 (242) 555-0123"
+                            className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-11 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15"
+                            {...register("phoneNumber", {
+                              validate: (value) => !value || value.trim().length >= 7 || "Please enter a valid phone number.",
+                            })}
+                          />
+                        </div>
+                        {errors.phoneNumber ? <p className="text-xs text-rose-600">{errors.phoneNumber.message}</p> : null}
+                      </div>
                     </div>
                   </div>
+
                   <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">Business Details</p>
-                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-1.5"><label htmlFor="companyName" className="text-sm font-medium text-[#111827]">Company Name</label><div className="relative"><Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input id="companyName" type="text" className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-11 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15" {...register("companyName", { required: "Company name is required." })} /></div>{errors.companyName ? <p className="text-xs text-rose-600">{errors.companyName.message}</p> : null}</div>
-                      <div className="space-y-1.5"><label htmlFor="role" className="text-sm font-medium text-[#111827]">Primary Role</label><div className="relative"><Briefcase className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><select id="role" className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-10 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15" {...register("role", { required: "Primary role is required." })}><option value="">Select primary role</option>{ROLE_OPTIONS.map((role) => <option key={role} value={role}>{role}</option>)}</select></div>{errors.role ? <p className="text-xs text-rose-600">{errors.role.message}</p> : null}</div>
-                      <div className="space-y-1.5"><label htmlFor="businessType" className="text-sm font-medium text-[#111827]">Business Type</label><div className="relative"><Briefcase className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><select id="businessType" className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-10 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15" {...register("businessType", { required: "Business type is required." })}><option value="">Select business type</option>{BUSINESS_TYPE_OPTIONS.map((businessType) => <option key={businessType} value={businessType}>{businessType}</option>)}</select></div>{errors.businessType ? <p className="text-xs text-rose-600">{errors.businessType.message}</p> : null}</div>
-                      <div className="space-y-1.5"><label htmlFor="teamSize" className="text-sm font-medium text-[#111827]">Team Size</label><div className="relative"><Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><select id="teamSize" className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-10 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15" {...register("teamSize", { required: "Please select your team size." })}><option value="">Select team size</option><option value="1-10">1-10 employees</option><option value="11-50">11-50 employees</option><option value="51-200">51-200 employees</option><option value="201-500">201-500 employees</option><option value="500+">500+ employees</option></select></div>{errors.teamSize ? <p className="text-xs text-rose-600">{errors.teamSize.message}</p> : null}</div>
-                      <div className="space-y-1.5 sm:col-span-2"><label htmlFor="priorConsultingExperience" className="text-sm font-medium text-[#111827]">Prior Provider Experience</label><div className="relative"><ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><select id="priorConsultingExperience" className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-10 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15" {...register("priorConsultingExperience", { required: "Please select your prior provider experience." })}><option value="">Select experience level</option>{PRIOR_EXPERIENCE_OPTIONS.map((item) => <option key={item} value={item}>{item}</option>)}</select></div>{errors.priorConsultingExperience ? <p className="text-xs text-rose-600">{errors.priorConsultingExperience.message}</p> : null}</div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">Location</p>
+                    <div className="mt-3 space-y-4">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => setValue("locationScope", "bahamas", { shouldDirty: true, shouldValidate: true })}
+                          className={cn(
+                            "rounded-2xl border px-4 py-3 text-left transition",
+                            locationScope === "bahamas"
+                              ? "border-[#356AF6] bg-[#EEF3FF] shadow-[0_10px_24px_rgba(53,106,246,0.10)]"
+                              : "border-[#D9E3F3] bg-white hover:border-[#BFD0F8] hover:bg-[#F8FBFF]",
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <MapPin className={cn("h-4 w-4", locationScope === "bahamas" ? "text-[#356AF6]" : "text-[#7B89A2]")} />
+                            <div>
+                              <p className="text-sm font-semibold text-[#111827]">Located in The Bahamas</p>
+                              <p className="mt-1 text-xs text-[#7B89A2]">Use island selection for more precise matching.</p>
+                            </div>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setValue("locationScope", "outside-bahamas", { shouldDirty: true, shouldValidate: true })}
+                          className={cn(
+                            "rounded-2xl border px-4 py-3 text-left transition",
+                            locationScope === "outside-bahamas"
+                              ? "border-[#356AF6] bg-[#EEF3FF] shadow-[0_10px_24px_rgba(53,106,246,0.10)]"
+                              : "border-[#D9E3F3] bg-white hover:border-[#BFD0F8] hover:bg-[#F8FBFF]",
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Globe2 className={cn("h-4 w-4", locationScope === "outside-bahamas" ? "text-[#356AF6]" : "text-[#7B89A2]")} />
+                            <div>
+                              <p className="text-sm font-semibold text-[#111827]">Outside The Bahamas</p>
+                              <p className="mt-1 text-xs text-[#7B89A2]">We will prioritize remote-friendly experts.</p>
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+                      {errors.locationScope ? <p className="text-xs text-rose-600">{errors.locationScope.message}</p> : null}
+                      <input type="hidden" {...register("locationScope", { required: "Please select whether you are in The Bahamas or outside." })} />
+
+                      {locationScope === "bahamas" ? (
+                        <div className="space-y-1.5">
+                          <label htmlFor="island" className="text-sm font-medium text-[#111827]">Island</label>
+                          <div className="relative">
+                            <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <select
+                              id="island"
+                              className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-10 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15"
+                              {...register("island", {
+                                validate: (value) => locationScope !== "bahamas" || Boolean(value) || "Please select your island.",
+                              })}
+                            >
+                              <option value="">Select island</option>
+                              {BAHAMAS_ISLAND_OPTIONS.map((island) => <option key={island} value={island}>{island}</option>)}
+                            </select>
+                          </div>
+                          {errors.island ? <p className="text-xs text-rose-600">{errors.island.message}</p> : null}
+                        </div>
+                      ) : null}
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="location" className="text-sm font-medium text-[#111827]">Address</label>
+                        <div className="relative">
+                          <MapPin className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                          <input
+                            id="location"
+                            type="text"
+                            placeholder={locationScope === "outside-bahamas" ? "City, state, or country" : "Street, area, or landmark"}
+                            autoComplete="off"
+                            className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-11 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15"
+                            {...register("location", {
+                              required: "Address is required.",
+                              minLength: { value: 3, message: "Please enter at least 3 characters." },
+                            })}
+                            onFocus={handleLocationFocus}
+                            onBlur={handleLocationBlur}
+                          />
+                          {isLocationSuggestionsOpen && filteredLocationSuggestions.length > 0 ? (
+                            <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-[#D9E3F3] bg-white shadow-[0_18px_40px_rgba(56,75,107,0.12)]">
+                              {filteredLocationSuggestions.map((suggestion) => (
+                                <button
+                                  key={`${suggestion.label}-${suggestion.detail}`}
+                                  type="button"
+                                  onMouseDown={(event) => {
+                                    event.preventDefault();
+                                    handleLocationSuggestionSelect(suggestion);
+                                  }}
+                                  className="flex w-full items-start justify-between gap-3 border-b border-[#EEF3FF] px-4 py-3 text-left last:border-b-0 hover:bg-[#F8FBFF]"
+                                >
+                                  <div>
+                                    <p className="text-sm font-medium text-[#111827]">{suggestion.label}</p>
+                                    <p className="mt-1 text-xs text-[#7B89A2]">{suggestion.detail}</p>
+                                  </div>
+                                  <span className="rounded-full bg-[#EEF3FF] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#356AF6]">
+                                    Suggestion
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                        <p className="text-xs text-[#7B89A2]">Start typing and pick the closest address suggestion, just like a lightweight Google-style search.</p>
+                        {errors.location ? <p className="text-xs text-rose-600">{errors.location.message}</p> : null}
+                      </div>
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">Location & Website</p>
-                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-1.5"><label htmlFor="location" className="text-sm font-medium text-[#111827]">Business Location</label><div className="relative"><MapPin className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" /><input id="location" type="text" autoComplete="off" placeholder="Start typing a location..." className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-11 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15" {...register("location", { required: "Business location is required.", minLength: { value: 2, message: "Please enter at least 2 characters." } })} />{shouldShowLocationSuggestions ? <div className="absolute left-0 right-0 top-[calc(100%+0.4rem)] z-20 overflow-hidden rounded-2xl border border-[#D9E3F3] bg-white shadow-[0_18px_34px_rgba(56,75,107,0.12)]">{filteredLocationSuggestions.length > 0 ? filteredLocationSuggestions.map((suggestion) => <button key={suggestion.label} type="button" onClick={() => handleLocationSelect(suggestion.label)} className="flex w-full items-start justify-between gap-3 border-b border-[#EEF2FA] px-4 py-3 text-left transition last:border-b-0 hover:bg-[#F7FAFF]"><span><span className="block text-sm font-medium text-[#111827]">{suggestion.label}</span><span className="mt-1 block text-xs text-[#7B89A2]">{suggestion.detail}</span></span><span className="rounded-full bg-[#EEF3FF] px-2.5 py-1 text-[11px] font-semibold text-[#356AF6]">Select</span></button>) : <div className="px-4 py-3 text-sm text-[#7B89A2]">Keep typing or choose a quick map location below.</div>}</div> : null}</div><div className="mt-3 flex flex-wrap gap-2"><span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">Quick map picks</span>{LOCATION_SUGGESTIONS.map((suggestion) => <button key={suggestion.label} type="button" onClick={() => handleLocationSelect(suggestion.label)} className={`rounded-full border px-3 py-1 text-xs font-medium transition ${leadLocationValue === suggestion.label ? "border-[#BFD0F8] bg-[#EEF3FF] text-[#356AF6]" : "border-[#D9E3F3] bg-white text-[#5D6B85] hover:bg-[#F7FAFF]"}`}>{suggestion.label}</button>)}</div>{errors.location ? <p className="text-xs text-rose-600">{errors.location.message}</p> : null}</div>
-                      <div className="space-y-1.5"><label htmlFor="website" className="text-sm font-medium text-[#111827]">Website (Optional)</label><div className="relative"><Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input id="website" type="url" placeholder="https://" className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-11 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15" {...register("website")} /></div></div>
+
+                  {isBusinessAudience ? (
+                    <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">Business Details</p>
+                      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label htmlFor="companyName" className="text-sm font-medium text-[#111827]">Company Name</label>
+                          <div className="relative">
+                            <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <input
+                              id="companyName"
+                              type="text"
+                              className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-11 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15"
+                              {...register("companyName", { required: "Company name is required." })}
+                            />
+                          </div>
+                          {errors.companyName ? <p className="text-xs text-rose-600">{errors.companyName.message}</p> : null}
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label htmlFor="role" className="text-sm font-medium text-[#111827]">Primary Role</label>
+                          <div className="relative">
+                            <Briefcase className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <select
+                              id="role"
+                              className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-10 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15"
+                              {...register("role", { required: "Primary role is required." })}
+                            >
+                              <option value="">Select primary role</option>
+                              {ROLE_OPTIONS.map((role) => <option key={role} value={role}>{role}</option>)}
+                            </select>
+                          </div>
+                          {errors.role ? <p className="text-xs text-rose-600">{errors.role.message}</p> : null}
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label htmlFor="businessType" className="text-sm font-medium text-[#111827]">Business Type</label>
+                          <div className="relative">
+                            <Briefcase className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <select
+                              id="businessType"
+                              className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-10 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15"
+                              {...register("businessType", { required: "Business type is required." })}
+                            >
+                              <option value="">Select business type</option>
+                              {BUSINESS_TYPE_OPTIONS.map((businessType) => <option key={businessType} value={businessType}>{businessType}</option>)}
+                            </select>
+                          </div>
+                          {errors.businessType ? <p className="text-xs text-rose-600">{errors.businessType.message}</p> : null}
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label htmlFor="teamSize" className="text-sm font-medium text-[#111827]">Team Size</label>
+                          <div className="relative">
+                            <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <select
+                              id="teamSize"
+                              className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-10 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15"
+                              {...register("teamSize", { required: "Please select your team size." })}
+                            >
+                              <option value="">Select team size</option>
+                              <option value="1-10">1-10 employees</option>
+                              <option value="11-50">11-50 employees</option>
+                              <option value="51-200">51-200 employees</option>
+                              <option value="201-500">201-500 employees</option>
+                              <option value="500+">500+ employees</option>
+                            </select>
+                          </div>
+                          {errors.teamSize ? <p className="text-xs text-rose-600">{errors.teamSize.message}</p> : null}
+                        </div>
+
+                        <div className="space-y-1.5 sm:col-span-2">
+                          <label htmlFor="priorConsultingExperience" className="text-sm font-medium text-[#111827]">Prior Provider Experience</label>
+                          <div className="relative">
+                            <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <select
+                              id="priorConsultingExperience"
+                              className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-10 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15"
+                              {...register("priorConsultingExperience", { required: "Please select your prior provider experience." })}
+                            >
+                              <option value="">Select experience level</option>
+                              {PRIOR_EXPERIENCE_OPTIONS.map((item) => <option key={item} value={item}>{item}</option>)}
+                            </select>
+                          </div>
+                          {errors.priorConsultingExperience ? <p className="text-xs text-rose-600">{errors.priorConsultingExperience.message}</p> : null}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ) : null}
+
                   <Button type="submit" size="lg" className="h-12 w-full bg-[#356AF6] text-white hover:bg-[#2C59D8]">View My Results</Button>
                 </form>
               </div>

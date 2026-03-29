@@ -22,7 +22,7 @@ export const mockQuizEnginePayload: QuizEnginePayload = {
           {
             id: "situation_now",
             text: "What situation are you in right now?",
-            category: "General Business Support",
+            category: "General Support",
             objective: "Understand the user's current pain state.",
             options: [
               {
@@ -57,53 +57,93 @@ export const mockQuizEnginePayload: QuizEnginePayload = {
                 explanation: "Previous failed attempts often point to higher complexity and frustration.",
                 tags: ["retry", "blocked"],
               },
+              {
+                id: "situation_not_working",
+                label: "E",
+                text: "Something isn't working but I'm not sure why",
+                riskPoints: 5,
+                explanation: "Unclear issues often create delay because the root cause is still unknown.",
+                tags: ["unclear", "issue"],
+              },
+              {
+                id: "situation_need_advice",
+                label: "F",
+                text: "I need expert advice before making a decision",
+                riskPoints: 4,
+                explanation: "Decision-stage users need clarity before committing to the next move.",
+                tags: ["decision", "advice"],
+              },
             ],
           },
           {
             id: "problem_need",
             text: "What problem do you need solved?",
-            category: "General Business Support",
+            category: "General Support",
             objective: "Route the user into the correct service lane.",
             options: [
               {
-                id: "need_business_setup",
+                id: "need_operations",
                 label: "A",
-                text: "Business setup",
+                text: "Operations",
                 riskPoints: 3,
-                explanation: "Needs business setup support.",
-                tags: ["setup"],
-              },
-              {
-                id: "need_licenses",
-                label: "B",
-                text: "Licenses / approvals",
-                riskPoints: 4,
-                explanation: "Needs licensing or approval support.",
-                tags: ["licenses", "approvals"],
+                explanation: "Needs operational support.",
+                tags: ["operations"],
               },
               {
                 id: "need_cybersecurity",
-                label: "C",
-                text: "IT / cybersecurity",
+                label: "B",
+                text: "Cybersecurity",
                 riskPoints: 6,
-                explanation: "Needs technical security support and readiness review.",
-                tags: ["cybersecurity", "it"],
+                explanation: "Needs cybersecurity support and risk review.",
+                tags: ["cybersecurity", "security"],
               },
               {
-                id: "need_accounting",
+                id: "need_systems",
+                label: "C",
+                text: "Systems",
+                riskPoints: 4,
+                explanation: "Needs systems or workflow support.",
+                tags: ["systems", "workflows"],
+              },
+              {
+                id: "need_growth",
                 label: "D",
-                text: "Accounting / finance",
+                text: "Growth",
                 riskPoints: 3,
-                explanation: "Needs financial or accounting guidance.",
-                tags: ["accounting", "finance"],
+                explanation: "Needs strategic growth support.",
+                tags: ["growth", "strategy"],
               },
               {
-                id: "need_other",
+                id: "need_career_help",
                 label: "E",
-                text: "Other",
+                text: "Career help",
                 riskPoints: 3,
-                explanation: "Needs broader business support.",
-                tags: ["other"],
+                explanation: "Needs career guidance or decision support.",
+                tags: ["career", "individual"],
+              },
+              {
+                id: "need_financial_advice",
+                label: "F",
+                text: "Financial advice",
+                riskPoints: 4,
+                explanation: "Needs personal financial guidance.",
+                tags: ["financial", "individual"],
+              },
+              {
+                id: "need_legal_help",
+                label: "G",
+                text: "Legal help",
+                riskPoints: 5,
+                explanation: "Needs legal guidance or support.",
+                tags: ["legal", "individual"],
+              },
+              {
+                id: "need_personal_tech_support",
+                label: "H",
+                text: "Personal tech support",
+                riskPoints: 4,
+                explanation: "Needs help with personal devices, accounts, or tech issues.",
+                tags: ["tech", "individual"],
               },
             ],
           },
@@ -118,7 +158,7 @@ export const mockQuizEnginePayload: QuizEnginePayload = {
           {
             id: "cyber_accounts",
             text: "Do you have a way to protect your business accounts?",
-            category: "IT & Cybersecurity",
+            category: "Cybersecurity",
             objective: "Understand account protection readiness.",
             options: [
               {
@@ -150,7 +190,7 @@ export const mockQuizEnginePayload: QuizEnginePayload = {
           {
             id: "cyber_backup",
             text: "Do you regularly back up your data?",
-            category: "IT & Cybersecurity",
+            category: "Cybersecurity",
             objective: "Measure backup readiness.",
             options: [
               {
@@ -182,7 +222,7 @@ export const mockQuizEnginePayload: QuizEnginePayload = {
           {
             id: "cyber_virus",
             text: "Do you have protection against viruses?",
-            category: "IT & Cybersecurity",
+            category: "Cybersecurity",
             objective: "Measure device protection readiness.",
             options: [
               {
@@ -214,7 +254,7 @@ export const mockQuizEnginePayload: QuizEnginePayload = {
           {
             id: "cyber_hacking",
             text: "Do you have protection against hacking?",
-            category: "IT & Cybersecurity",
+            category: "Cybersecurity",
             objective: "Measure defensive readiness against intrusion.",
             options: [
               {
@@ -246,7 +286,7 @@ export const mockQuizEnginePayload: QuizEnginePayload = {
           {
             id: "cyber_recovery",
             text: "If something went wrong today, could you recover quickly?",
-            category: "IT & Cybersecurity",
+            category: "Cybersecurity",
             objective: "Assess recovery confidence and resilience.",
             options: [
               {
@@ -283,10 +323,10 @@ export const mockQuizEnginePayload: QuizEnginePayload = {
     {
       id: "exp_ana_khan",
       fullName: "Ana Khan",
-      role: "Business Setup & Compliance Advisor",
+      role: "Operations & Growth Advisor",
       organization: "Sentinel Advisory Group",
       yearsExperience: 12,
-      specialties: ["Business Setup", "Licenses & Approvals"],
+      specialties: ["Operations", "Growth", "Legal Help"],
       certifications: ["Chamber Certified Advisor", "Business Compliance Specialist"],
       languages: ["English", "Urdu"],
       timezone: "America/Nassau",
@@ -304,7 +344,7 @@ export const mockQuizEnginePayload: QuizEnginePayload = {
       role: "Cybersecurity & IT Response Consultant",
       organization: "BlueTrace Labs",
       yearsExperience: 10,
-      specialties: ["IT & Cybersecurity", "General Business Support"],
+      specialties: ["Cybersecurity", "Systems", "Personal Tech Support"],
       certifications: ["CISM", "GCIH", "Business Continuity Practitioner"],
       languages: ["English", "Korean"],
       timezone: "America/Nassau",
@@ -319,10 +359,10 @@ export const mockQuizEnginePayload: QuizEnginePayload = {
     {
       id: "exp_sofia_ramirez",
       fullName: "Sofia Ramirez",
-      role: "Finance & Operations Advisor",
+      role: "Finance & Career Advisor",
       organization: "AccessGrid Advisory",
       yearsExperience: 9,
-      specialties: ["Accounting & Finance", "General Business Support"],
+      specialties: ["Financial Advice", "Career Help", "Operations"],
       certifications: ["Financial Operations Advisor", "Certified Management Consultant"],
       languages: ["English", "Spanish"],
       timezone: "America/Nassau",
@@ -343,7 +383,7 @@ export const mockQuizEnginePayload: QuizEnginePayload = {
     riskLevel: "high",
     categoryBreakdown: [
       {
-        category: "IT & Cybersecurity",
+        category: "Cybersecurity",
         riskPoints: 22,
         maxRiskPoints: 36,
         riskLevel: "high",
@@ -358,6 +398,6 @@ export const mockQuizEnginePayload: QuizEnginePayload = {
       "Align budget and urgency before outreach to reduce delays.",
       "Connect the user with a matched expert who can move in the requested timeframe.",
     ],
-    recommendedExpertIds: ["exp_daniel_cho", "exp_ana_khan"],
+    recommendedExpertIds: ["exp_daniel_cho", "exp_sofia_ramirez"],
   },
 };

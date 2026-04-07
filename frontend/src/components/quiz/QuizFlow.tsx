@@ -671,13 +671,8 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                 <motion.div key="cyber-intro" initial={{ opacity: 0, y: reducedMotion ? 0 : 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reducedMotion ? 0 : -14 }} transition={{ duration: 0.2 }} className="mt-8 rounded-[26px] border border-[#D9E3F3] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-7">
                   <Badge className="bg-[#EEF3FF] text-[#356AF6]">Cybersecurity Flow</Badge>
                   <h2 className="mt-4 text-3xl font-semibold tracking-tight text-[#111827]">Let&apos;s quickly check your setup (takes 30 seconds)</h2>
-                  <p className="mt-3 text-base leading-7 text-[#5D6B85]">This takes about 30 seconds. We&apos;ll keep the questions simple and use your answers to estimate risk in the background.</p>
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                    {["Protecting business accounts", "Backup readiness", "Virus protection", "Recovery confidence"].map((item) => (
-                      <div key={item} className="rounded-2xl border border-[#D9E3F3] bg-white px-4 py-3 text-sm font-medium text-[#111827]">{item}</div>
-                    ))}
-                  </div>
-                  <Button type="button" onClick={continueCyberIntro} size="lg" className="mt-7 h-12 rounded-xl bg-[#356AF6] px-6 text-white hover:bg-[#2C59D8]">Continue</Button>
+                  <p className="mt-3 text-base leading-7 text-[#5D6B85]">We&apos;ll check a few basics: account protection, backups, virus defences, and recovery readiness. Takes about 30 seconds.</p>
+                  <Button type="button" onClick={continueCyberIntro} size="lg" className="mt-6 h-12 rounded-xl bg-[#356AF6] px-6 text-white hover:bg-[#2C59D8]">Continue</Button>
                 </motion.div>
               ) : currentPrompt ? (
                 <motion.div key={currentPrompt.id} initial={{ opacity: 0, x: reducedMotion ? 0 : 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: reducedMotion ? 0 : -16 }} transition={{ duration: 0.2 }} className="mt-8">
@@ -685,20 +680,24 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                     <h2 className="text-3xl font-semibold tracking-tight text-[#111827] sm:text-4xl">{currentPrompt.text}</h2>
                     {currentPrompt.helper ? <p className="mt-3 text-base leading-7 text-[#5D6B85]">{currentPrompt.helper}</p> : null}
                   </div>
-                  <div className="mt-8 space-y-4">
+                  <div className="mt-6 space-y-3">
                     {currentPrompt.options.map((option) => (
-                      <button key={option.id} type="button" onClick={() => handleOptionSelect(currentPrompt, option)} className="group w-full rounded-[24px] border border-[#D9E3F3] bg-[#FCFDFF] p-5 text-left transition hover:border-[#BFD0F8] hover:bg-white hover:shadow-[0_12px_26px_rgba(56,75,107,0.08)]">
-                        <div className="flex items-start justify-between gap-4">
+                      <button key={option.id} type="button" onClick={() => handleOptionSelect(currentPrompt, option)} className="group w-full rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] px-5 py-4 text-left transition hover:border-[#BFD0F8] hover:bg-white hover:shadow-[0_8px_20px_rgba(56,75,107,0.07)]">
+                        <div className="flex items-center justify-between gap-4">
                           <div>
-                            <p className="text-lg font-semibold text-[#111827]">{option.label}</p>
-                            <p className="mt-2 text-sm leading-6 text-[#5D6B85]">{option.text}</p>
-                            {option.support ? <p className="mt-2 text-xs uppercase tracking-[0.12em] text-[#7B89A2]">{option.support}</p> : null}
+                            <p className="text-base font-semibold text-[#111827]">{option.label}</p>
+                            {option.text && option.text !== option.label ? <p className="mt-1 text-sm text-[#5D6B85]">{option.text}</p> : null}
                           </div>
-                          <span className="rounded-full bg-[#EEF3FF] px-3 py-1 text-xs font-semibold text-[#356AF6] transition group-hover:bg-[#356AF6] group-hover:text-white">Select</span>
+                          <span className="shrink-0 rounded-full bg-[#EEF3FF] px-3 py-1 text-xs font-semibold text-[#356AF6] transition group-hover:bg-[#356AF6] group-hover:text-white">Select</span>
                         </div>
                       </button>
                     ))}
                   </div>
+
+                  {/* Inline hint */}
+                  <p className="mt-5 text-sm text-[#8A99B4]">
+                    Not sure? Choose the closest option — we’ll refine later.
+                  </p>
                 </motion.div>
               ) : null}
             </div>
@@ -718,8 +717,8 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
               <div className="rounded-[28px] border border-[#D9E3F3] bg-white p-5 shadow-[0_14px_34px_rgba(56,75,107,0.08)]">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">Matching Notes</p>
                 <div className="mt-4 space-y-3">
-                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">We keep the questions simple and handle the scoring behind the scenes.</p></div>
-                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">If you choose IT / cybersecurity, we ask a short setup check before matching.</p></div>
+                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">Takes 60 seconds · No commitment · Instant results.</p></div>
+                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">Not sure about an answer? Choose the closest option — the system is designed to guide you even if you’re unsure.</p></div>
                   <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">Budget, urgency, and location help us rank the right experts faster.</p></div>
                 </div>
               </div>
@@ -735,40 +734,21 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                   <Badge className="bg-[#EEF3FF] text-[#356AF6]">Almost Done</Badge>
                   <h2 className="mt-4 text-3xl font-semibold tracking-tight text-[#111827]">Where should we send your matched experts?</h2>
                   <p className="mt-3 text-sm leading-7 text-[#5D6B85]">You&apos;ve completed the quiz. Add your details below and we&apos;ll unlock your results and matched expert recommendations.</p>
-                  <div className="mt-6 space-y-3">
+                  <div className="mt-4 divide-y divide-[#EEF3FF]">
                     {[
-                      selectedAudienceLabel ? `Audience: ${selectedAudienceLabel}` : null,
-                      `Help needed: ${getSelectedOption(ALL_HELP_OPTIONS, answers.problem_need)?.text || "Not selected"}`,
-                      `Urgency: ${getSelectedOption(URGENCY_OPTIONS, answers.urgency)?.text || "Not selected"}`,
-                      `Budget: ${getSelectedOption(BUDGET_OPTIONS, answers.budget)?.text || "Not selected"}`,
-                      `Current priority: ${selectedCategory}`,
-                    ].filter((item): item is string => Boolean(item)).map((item) => <div key={item} className="rounded-2xl border border-[#D9E3F3] bg-white px-4 py-3 text-sm font-medium text-[#111827]">{item}</div>)}
-                  </div>
-                  <div className="mt-6 rounded-2xl border border-[#D9E3F3] bg-white p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">Location Notes</p>
-                    <div className="mt-3 space-y-3">
-                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] px-4 py-3">
-                        <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Region</p>
-                        <p className="mt-1 text-sm font-semibold text-[#111827]">
-                          {locationScope === "bahamas"
-                            ? "Located in The Bahamas"
-                            : locationScope === "outside-bahamas"
-                              ? "Outside The Bahamas"
-                              : "Choose your region"}
-                        </p>
+                      selectedAudienceLabel ? { label: "Audience", value: selectedAudienceLabel } : null,
+                      { label: "Help needed", value: getSelectedOption(ALL_HELP_OPTIONS, answers.problem_need)?.label || "—" },
+                      { label: "Urgency", value: getSelectedOption(URGENCY_OPTIONS, answers.urgency)?.label || "—" },
+                      { label: "Budget", value: getSelectedOption(BUDGET_OPTIONS, answers.budget)?.label || "—" },
+                      { label: "Priority", value: selectedCategory },
+                    ].filter((item): item is { label: string; value: string } => Boolean(item)).map((item) => (
+                      <div key={item.label} className="flex items-center justify-between py-2.5">
+                        <span className="text-xs text-[#7B89A2]">{item.label}</span>
+                        <span className="text-xs font-semibold text-[#111827] text-right max-w-[60%]">{item.value}</span>
                       </div>
-                      {locationScope === "bahamas" ? (
-                        <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] px-4 py-3">
-                          <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Island</p>
-                          <p className="mt-1 text-sm font-semibold text-[#111827]">{selectedIsland || "Select your island"}</p>
-                        </div>
-                      ) : null}
-                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] px-4 py-3">
-                        <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Address</p>
-                        <p className="mt-1 text-sm font-semibold text-[#111827]">{leadLocationValue || "Start typing your address"}</p>
-                      </div>
-                    </div>
+                    ))}
                   </div>
+                  <p className="mt-4 text-xs text-[#1E40AF]">We only use your information to connect you with relevant experts. No spam, no sales calls.</p>
                 </div>
                 <form onSubmit={handleSubmit(handleLeadCaptureSubmit)} className="space-y-5 rounded-[26px] border border-[#D9E3F3] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-6" noValidate>
                   <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4">

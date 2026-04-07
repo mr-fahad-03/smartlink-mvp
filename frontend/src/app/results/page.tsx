@@ -471,6 +471,10 @@ export default function ResultsPage() {
             Review the shortlist below, then move into the full expert-match screen when you are ready to compare options more closely.
           </p>
 
+          <p className="mt-3 text-sm text-[#8A99B4]">
+            You are not locked in — you can explore options before contacting anyone.
+          </p>
+
           <div className="mt-6 flex flex-wrap gap-3">
             <Button asChild size="lg" className="h-11 rounded-xl bg-[#356AF6] px-6 text-white hover:bg-[#2C59D8]">
               <Link href="/expert-match">

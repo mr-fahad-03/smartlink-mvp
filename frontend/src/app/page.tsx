@@ -155,6 +155,25 @@ export default function Home() {
         <p className="mt-4 text-[0.84rem] text-[#8A99B4]">
           Takes 60 seconds · No commitment · Instant results
         </p>
+
+        {/* Common situations */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <p className="w-full text-center text-[0.78rem] font-medium text-[#8A99B4]">
+            Common situations:
+          </p>
+          {[
+            { label: "Something isn't working but I'm not sure why", situation: "not-working" },
+            { label: "I need expert advice before making a decision", situation: "need-advice" },
+          ].map(({ label, situation }) => (
+            <Link
+              key={situation}
+              href={`/quiz?situation=${situation}`}
+              className="rounded-full border border-[#D9E3F3] bg-white px-4 py-1.5 text-[0.82rem] font-medium text-[#5D6B85] shadow-sm transition hover:border-[#356AF6]/50 hover:text-[#356AF6]"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
       </section>
 
       {/* ── WHO IS THIS FOR ── */}
@@ -201,7 +220,7 @@ export default function Home() {
             </div>
 
             <p className="mt-5 text-center text-[0.82rem] text-[#8A99B4]">
-              Not sure? Choose &ldquo;I&apos;m not sure&rdquo; — we&apos;ll refine as we go.
+              Not sure? Choose &ldquo;I&apos;m not sure&rdquo; — we&apos;ll refine as we go. No commitment required.
             </p>
           </div>
         </div>

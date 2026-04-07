@@ -15,7 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { PageOrientation } from "@/components/navigation/page-orientation";
+import { InnerNav } from "@/components/navigation/inner-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { mockQuizEnginePayload } from "@/data";
@@ -582,15 +582,7 @@ export default function ExpertMatchPage() {
     return (
       <main className="sl-page min-h-screen px-6 py-8">
         <div className="mx-auto w-full max-w-7xl">
-          <PageOrientation
-            fallbackHref="/results"
-            eyebrow="Expert Match"
-            title="Loading Your Smart Matches"
-            description="We are preparing the providers and services that best align with your latest assessment."
-            currentView="Match Loading"
-            stepLabel="Step 4 of 4"
-            nextLabel="Review matched providers and choose the services you want."
-          />
+          <InnerNav breadcrumb="Expert Match" stepLabel="Step 4 of 4" />
           <div className="mt-6 rounded-[28px] border border-[#D9E3F3] bg-white px-8 py-10 text-center shadow-[0_14px_34px_rgba(56,75,107,0.08)]">
             <p className="text-sm text-[#5D6B85]">Loading expert matching...</p>
           </div>
@@ -603,15 +595,7 @@ export default function ExpertMatchPage() {
     return (
       <main className="sl-page min-h-screen px-6 py-8">
         <div className="mx-auto w-full max-w-7xl">
-          <PageOrientation
-            fallbackHref="/results"
-            eyebrow="Expert Match"
-            title="Complete Your Assessment Before Matching"
-            description="We could not find the latest result data in this browser session, so provider matching is not available yet."
-            currentView="Missing Results"
-            stepLabel="Step 4 of 4"
-            nextLabel="Return to your results, then continue to matched providers."
-          />
+          <InnerNav breadcrumb="Expert Match" stepLabel="Step 4 of 4" />
           <div className="sl-card mt-6 w-full max-w-xl rounded-[30px] p-8 text-center">
             <Badge className="h-auto rounded-full bg-[#EEF3FF] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#356AF6]">
               Missing Results
@@ -645,23 +629,7 @@ export default function ExpertMatchPage() {
       </div>
 
       <div className="mx-auto w-full max-w-7xl px-6 py-8">
-        <PageOrientation
-          fallbackHref="/results"
-          eyebrow="Expert Match"
-          title={
-            assessmentMode === "cybersecurity-risk"
-              ? "Your Cybersecurity Expert Matches"
-              : "Your Smart Matches"
-          }
-          description={
-            assessmentMode === "cybersecurity-risk"
-              ? "Browse the providers ranked for your cybersecurity profile, then request a trusted introduction instead of contacting experts directly."
-              : "Browse the providers ranked for your needs, then request a trusted introduction instead of contacting experts directly."
-          }
-          currentView={highestRisk.category}
-          stepLabel="Step 4 of 4"
-          nextLabel="Choose services, request an introduction, and let SmartLink route the lead cleanly."
-        />
+        <InnerNav breadcrumb="Expert Match" stepLabel="Step 4 of 4" />
         <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_330px]">
           <section className="space-y-5">
             <div className="rounded-[28px] border border-[#D9E3F3] bg-white p-5 shadow-[0_14px_34px_rgba(56,75,107,0.08)]">

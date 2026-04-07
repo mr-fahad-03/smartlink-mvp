@@ -18,7 +18,7 @@ import {
   Users,
 } from "lucide-react";
 
-import { PageOrientation } from "@/components/navigation/page-orientation";
+import { InnerNav } from "@/components/navigation/inner-nav";
 import { ExpertMatchCard } from "@/components/results/expert-match-card";
 import { RiskGauge } from "@/components/results/risk-gauge";
 import { Badge } from "@/components/ui/badge";
@@ -206,15 +206,7 @@ export default function ResultsPage() {
     return (
       <main className="sl-page min-h-screen px-6 py-8">
         <div className="mx-auto w-full max-w-6xl">
-          <PageOrientation
-            fallbackHref="/quiz"
-            eyebrow="Results Dashboard"
-            title={assessmentMode === "cybersecurity-risk" ? "Your Cybersecurity Risk Results" : "Your Smart Results"}
-            description="We are loading your completed assessment so you can review your next step and best matches."
-            currentView="Results Loading"
-            stepLabel="Step 3 of 4"
-            nextLabel="Review your action plan and continue to matched experts."
-          />
+          <InnerNav breadcrumb="Your Results" stepLabel="Step 3 of 4" />
           <div className="sl-card mt-6 w-full max-w-lg rounded-[28px] px-8 py-10 text-center">
             <p className="text-sm text-[#5D6B85]">Loading your assessment results...</p>
           </div>
@@ -227,15 +219,7 @@ export default function ResultsPage() {
     return (
       <main className="sl-page min-h-screen px-6 py-8">
         <div className="mx-auto w-full max-w-6xl">
-          <PageOrientation
-            fallbackHref="/quiz"
-            eyebrow="Results Dashboard"
-            title="Complete the Assessment First"
-            description="We could not find a saved result in this browser session yet."
-            currentView="Missing Results"
-            stepLabel="Step 3 of 4"
-            nextLabel="Return to the quiz to finish your assessment."
-          />
+          <InnerNav breadcrumb="Your Results" stepLabel="Step 3 of 4" />
           <div className="sl-card mt-6 w-full max-w-xl rounded-[30px] p-8 text-center">
             <Badge className="h-auto rounded-full bg-[#EEF3FF] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#356AF6]">
               No Uploaded Results
@@ -335,15 +319,7 @@ export default function ResultsPage() {
       </div>
 
       <div className="mx-auto w-full max-w-6xl px-6 py-10">
-        <PageOrientation
-          fallbackHref="/quiz"
-          eyebrow="Results Dashboard"
-          title={assessmentMode === "cybersecurity-risk" ? "Your Cybersecurity Results" : isBusinessAudience ? "Your Smart Results" : "Your Support Results"}
-          description={`Hello ${submission.lead.fullName}. Your results are organized to help you act quickly, not just review information.`}
-          currentView={highestRisk.category}
-          stepLabel="Step 3 of 4"
-          nextLabel="Review your next step first, then continue to the best matched experts."
-        />
+        <InnerNav breadcrumb="Your Results" stepLabel="Step 3 of 4" />
 
         <p className="mt-4 text-right text-sm text-[#7B89A2]">Submitted: {submittedLabel}</p>
 

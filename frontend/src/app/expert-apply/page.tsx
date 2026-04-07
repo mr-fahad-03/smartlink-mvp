@@ -17,28 +17,9 @@ import {
   UserRound,
 } from "lucide-react";
 
-import { PageOrientation } from "@/components/navigation/page-orientation";
+import { InnerNav } from "@/components/navigation/inner-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-const onboardingSteps = [
-  {
-    title: "Profile Details",
-    detail: "Name, role, firm, service areas, rates, and short professional bio.",
-  },
-  {
-    title: "Credentials & Verification",
-    detail: "Identity check, references, proof of experience, and trust review.",
-  },
-  {
-    title: "Business License / Certifications",
-    detail: "Upload license, Chamber documents, and industry certifications.",
-  },
-  {
-    title: "Admin Review",
-    detail: "Our team approves, rejects, verifies, features, and controls visibility.",
-  },
-];
 
 const EXPERT_DRAFT_STORAGE_KEY = "smartlink:expert-application-draft";
 
@@ -230,68 +211,22 @@ export default function ExpertApplyPage() {
   return (
     <main className="sl-page min-h-screen text-[#111827]">
       <div className="mx-auto w-full max-w-6xl px-6 py-8">
-        <PageOrientation
-          fallbackHref="/"
-          eyebrow="Expert Onboarding"
-          title="Apply To Join The SmartLink Expert Network"
-          description="A polished onboarding flow for professionals who want to join the marketplace with profile details, verification, business licensing, and certification review."
-          currentView="Expert Application"
-          stepLabel="Onboarding Flow"
-          nextLabel="Complete profile details first, then upload verification and compliance documents for review."
-        />
+        <InnerNav breadcrumb="Expert Application" />
 
-        <section className="mt-6 rounded-[30px] border border-[#D9E3F3] bg-[linear-gradient(180deg,#ffffff_0%,#f7fbff_100%)] p-6 shadow-[0_14px_34px_rgba(56,75,107,0.08)]">
-          <div className="max-w-3xl">
-            <Badge className="h-auto rounded-full bg-[#EEF3FF] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#356AF6]">
-              Why This Matters
-            </Badge>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-[#111827]">
-              This onboarding is not just a form.
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-[#5D6B85]">
-              It is the entry point for expert quality, supply growth, and long-term marketplace trust.
-            </p>
-          </div>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {[
-              {
-                title: "Expert Supply Funnel",
-                detail: "This flow brings strong experts into the network and prepares them to receive qualified client requests.",
-              },
-              {
-                title: "Quality Control System",
-                detail: "Structured fields, verification, and review signals help keep the marketplace trustworthy and reliable.",
-              },
-              {
-                title: "Marketplace Foundation",
-                detail: "The onboarding data shapes future matching, lead tracking, monetization, and performance visibility.",
-              },
-            ].map((item) => (
-              <article
-                key={item.title}
-                className="rounded-[24px] border border-[#D9E3F3] bg-white p-5 shadow-[0_10px_24px_rgba(56,75,107,0.05)]"
-              >
-                <h3 className="text-lg font-semibold text-[#111827]">{item.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-[#5D6B85]">{item.detail}</p>
-              </article>
+        <section className="mt-6 rounded-[28px] border border-[#D9E3F3] bg-[linear-gradient(180deg,#EEF3FF_0%,#ffffff_100%)] p-7 shadow-[0_16px_36px_rgba(56,75,107,0.07)]">
+          <p className="text-[0.78rem] font-semibold uppercase tracking-[0.16em] text-[#356AF6]">Expert Network</p>
+          <h1 className="mt-2 text-[1.8rem] font-semibold tracking-tight text-[#111827]">
+            Join SmartLink and get matched with qualified clients in your area
+          </h1>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {["Get matched with real client requests", "No cold outreach required", "Control your availability and rates"].map((point) => (
+              <div key={point} className="flex items-center gap-3 rounded-[18px] border border-[#D9E3F3] bg-white px-4 py-3">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-[#356AF6]" />
+                <p className="text-[0.9rem] font-medium text-[#111827]">{point}</p>
+              </div>
             ))}
           </div>
-        </section>
-
-        <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {onboardingSteps.map((step, index) => (
-            <article
-              key={step.title}
-              className="rounded-[24px] border border-[#D9E3F3] bg-white p-5 shadow-[0_10px_24px_rgba(56,75,107,0.06)]"
-            >
-              <span className="rounded-full bg-[#EEF3FF] px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#356AF6]">
-                Step {index + 1}
-              </span>
-              <h2 className="mt-4 text-lg font-semibold text-[#111827]">{step.title}</h2>
-              <p className="mt-2 text-sm leading-6 text-[#5D6B85]">{step.detail}</p>
-            </article>
-          ))}
+          <p className="mt-4 text-[0.84rem] text-[#8A99B4]">Applications are reviewed within 2 business days. You&apos;ll be notified once approved.</p>
         </section>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
@@ -741,13 +676,6 @@ export default function ExpertApplyPage() {
                 </Button>
                 <Button className="rounded-xl bg-[#356AF6] text-white hover:bg-[#2C59D8]">
                   Submit & Start Receiving Client Matches
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="rounded-xl border-[#D9E3F3] bg-white text-[#111827] hover:bg-[#F7FAFF]"
-                >
-                  <Link href="/admin">View Admin Review Screen</Link>
                 </Button>
               </div>
             </section>

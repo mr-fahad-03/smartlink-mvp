@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -17,7 +18,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
-import { PageOrientation } from "@/components/navigation/page-orientation";
+import { InnerNav } from "@/components/navigation/inner-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -647,23 +648,7 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
             (flowStep === "lead" || flowStep === "loading") && "pointer-events-none blur-[3px]",
           )}
         >
-          <PageOrientation
-            fallbackHref="/"
-            eyebrow={modeLabel}
-            title={
-              assessmentMode === "cybersecurity-risk"
-                ? "Cybersecurity Risk Check"
-                : "Tell us what you need help with"
-            }
-            description={
-              assessmentMode === "cybersecurity-risk"
-                ? "You are in the cybersecurity path now. We keep the questions simple, practical, and non-technical while the platform scores risk in the background."
-                : "This quiz is built to stay fast and clear. You answer simple questions, and the system handles the matching logic in the background."
-            }
-            currentView={currentViewLabel}
-            stepLabel={stepLabel}
-            nextLabel={nextStepLabel}
-          />
+          <InnerNav breadcrumb={modeLabel} stepLabel={stepLabel} />
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[1.32fr_0.68fr]">
             <div className="rounded-[30px] border border-[#D9E3F3] bg-white p-6 shadow-[0_16px_36px_rgba(56,75,107,0.08)] sm:p-8">

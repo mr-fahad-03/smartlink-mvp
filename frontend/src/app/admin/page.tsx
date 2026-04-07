@@ -16,7 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { PageOrientation } from "@/components/navigation/page-orientation";
+import { InnerNav } from "@/components/navigation/inner-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -224,15 +224,7 @@ export default function AdminPage() {
         </aside>
 
         <section className="space-y-6">
-          <PageOrientation
-            fallbackHref="/"
-            eyebrow="Admin Basics"
-            title="Expert Onboarding & Marketplace Control"
-            description="Review expert applications, validate credentials, approve trusted providers, and control exactly who appears in SmartLink matching."
-            currentView="Admin Dashboard"
-            stepLabel="Operations Workspace"
-            nextLabel="Approve qualified experts, then set verification, featured status, and matching visibility."
-          />
+          <InnerNav breadcrumb="Admin Dashboard" />
 
           <div className="grid gap-4 md:grid-cols-4">
             <article className="rounded-[24px] border border-[#D9E3F3] bg-white p-5 shadow-[0_10px_24px_rgba(56,75,107,0.06)]">

@@ -17,8 +17,8 @@ import { FaqAccordion } from "@/components/marketing/faq-accordion";
 const audienceSegments = [
   {
     id: "business-owner",
-    title: "I'm a business owner",
-    support: "Operations, cybersecurity, systems, and growth.",
+    title: "I run a business",
+    support: "Get help with setup, operations, IT, and growth.",
     icon: Building2,
     color: "text-[#356AF6]",
     bg: "bg-[#EEF3FF]",
@@ -26,7 +26,7 @@ const audienceSegments = [
   {
     id: "personal-help",
     title: "I need personal help",
-    support: "Career, finance, legal, or personal tech support.",
+    support: "Get help with career, finances, legal, or tech issues.",
     icon: UserRound,
     color: "text-[#16A34A]",
     bg: "bg-[#EBF8EF]",
@@ -45,29 +45,24 @@ const howItWorksSteps = [
   {
     step: "01",
     title: "Answer a few questions",
-    support: "A short guided flow — about 60 seconds.",
+    support: "Takes about 60 seconds.",
   },
   {
     step: "02",
-    title: "Get your personalized score",
-    support: "See your situation summary and top priorities.",
+    title: "See your best matches",
+    support: "Instant results based on your answers.",
   },
   {
     step: "03",
-    title: "See your matched experts",
-    support: "Ranked by relevance, location, and availability.",
-  },
-  {
-    step: "04",
-    title: "Request an introduction",
-    support: "We handle the connection. No cold outreach needed.",
+    title: "Choose who to connect with",
+    support: "No cold outreach — we handle the introduction.",
   },
 ];
 
 const trustSignals = [
   {
     icon: ShieldCheck,
-    title: "Verified experts only",
+    title: "Only verified professionals — no guesswork",
     support: "All experts are vetted before being listed.",
     color: "text-[#356AF6]",
     bg: "bg-[#EEF3FF]",
@@ -131,12 +126,12 @@ export default function Home() {
         </div>
 
         <h1 className="mx-auto mt-6 max-w-3xl text-[clamp(2.2rem,4.5vw,3.8rem)] font-semibold leading-[1.08] tracking-[-0.04em] text-[#111827]">
-          Get clarity and the right help —{" "}
-          <span className="text-[#356AF6]">for your situation</span>
+          Find the right expert for your{" "}
+          <span className="text-[#356AF6]">problem in 60 seconds</span>
         </h1>
 
         <p className="mx-auto mt-4 max-w-lg text-[1rem] leading-7 text-[#5D6B85]">
-          For business owners and individuals who need answers fast.
+          Answer a few questions and get matched instantly — no searching, no guessing.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -146,7 +141,7 @@ export default function Home() {
             className="h-12 rounded-xl bg-[#356AF6] px-7 text-[1rem] font-semibold text-white shadow-[0_12px_24px_rgba(53,106,246,0.26)] hover:bg-[#2C59D8]"
           >
             <a href="#who-is-this-for">
-              Get My Risk Score
+              Find My Expert
               <ArrowRight className="h-4 w-4" />
             </a>
           </Button>
@@ -173,6 +168,30 @@ export default function Home() {
               {label}
             </Link>
           ))}
+        </div>
+      </section>
+
+      {/* ── PROBLEM CONTEXT ── */}
+      <section className="pb-8">
+        <div className="mx-auto w-full max-w-5xl px-6">
+          <div className="rounded-[24px] border border-[#D9E3F3] bg-white/90 p-6 text-center shadow-[0_8px_24px_rgba(56,75,107,0.06)]">
+            <p className="text-[1rem] font-semibold text-[#111827]">Most people come here because:</p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+              {[
+                "Something isn't working",
+                "They don't know who to trust",
+                "They need expert advice fast",
+              ].map((reason) => (
+                <span
+                  key={reason}
+                  className="flex items-center gap-2 rounded-full border border-[#D9E3F3] bg-[#F7FAFF] px-4 py-2 text-[0.88rem] font-medium text-[#5D6B85]"
+                >
+                  <CheckCircle2 className="h-4 w-4 text-[#16A34A]" />
+                  {reason}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -235,11 +254,11 @@ export default function Home() {
                 How It Works
               </p>
               <h2 className="mt-2 text-[1.65rem] font-semibold tracking-tight text-[#111827]">
-                Get clarity in minutes, not months
+                Simple. Fast. Done.
               </h2>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-3">
               {howItWorksSteps.map((item, index) => (
                 <article
                   key={item.step}
@@ -298,7 +317,7 @@ export default function Home() {
           <div className="mt-4 rounded-[18px] border border-[#D9E3F3] bg-white/90 px-5 py-3.5 text-center shadow-[0_6px_16px_rgba(56,75,107,0.04)]">
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
               {[
-                { icon: CheckCircle2, label: "Verified experts only" },
+                { icon: CheckCircle2, label: "Only verified professionals — no guesswork" },
                 { icon: CheckCircle2, label: "Most users connect within 24–48 hours" },
                 { icon: CheckCircle2, label: "No obligation to hire" },
               ].map((t) => (
@@ -317,7 +336,7 @@ export default function Home() {
         <div className="mx-auto w-full max-w-5xl px-6">
           <div className="rounded-[28px] bg-[#356AF6] p-8 text-center shadow-[0_20px_44px_rgba(53,106,246,0.28)] sm:p-10">
             <h2 className="text-[1.7rem] font-semibold tracking-tight text-white sm:text-[2rem]">
-              Ready to find the right expert?
+              Stop searching. Get matched in seconds.
             </h2>
             <p className="mx-auto mt-3 max-w-md text-[0.96rem] leading-7 text-white/80">
               Answer a few questions and get matched instantly.
@@ -329,7 +348,7 @@ export default function Home() {
                 className="h-12 rounded-xl bg-white px-7 text-[1rem] font-semibold text-[#356AF6] shadow-[0_8px_18px_rgba(0,0,0,0.12)] hover:bg-white/90"
               >
                 <Link href="/quiz">
-                  Get My Risk Score
+                  Find My Expert
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -353,13 +372,21 @@ export default function Home() {
       <section id="faq" className="scroll-mt-24 pb-16">
         <div className="mx-auto w-full max-w-5xl px-6">
           <div className="rounded-[28px] border border-[#D9E3F3] bg-white/90 p-7 shadow-[0_16px_36px_rgba(56,75,107,0.07)] sm:p-8">
-            <div className="mb-2 max-w-xl">
+            <div className="mb-6 max-w-xl">
               <p className="text-[0.78rem] font-semibold uppercase tracking-[0.16em] text-[#356AF6]">
                 FAQ
               </p>
               <h2 className="mt-2 text-[1.65rem] font-semibold tracking-tight text-[#111827]">
                 Common questions
               </h2>
+            </div>
+
+            {/* Key FAQ — visible immediately */}
+            <div className="mb-6 rounded-[18px] border border-[#356AF6]/20 bg-[#EEF3FF] px-5 py-4">
+              <p className="text-[0.97rem] font-semibold text-[#111827]">How does this work?</p>
+              <p className="mt-1.5 text-[0.9rem] leading-7 text-[#5D6B85]">
+                We match you with the right expert based on your answers, no searching required.
+              </p>
             </div>
 
             <FaqAccordion />

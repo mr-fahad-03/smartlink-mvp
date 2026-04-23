@@ -343,14 +343,6 @@ export default function Home() {
               </h2>
             </div>
 
-            {/* Key FAQ — visible immediately */}
-            <div className="mb-6 rounded-[18px] border border-[#356AF6]/20 bg-[#EEF3FF] px-5 py-4">
-              <p className="text-[0.97rem] font-semibold text-[#111827]">How does this work?</p>
-              <p className="mt-1.5 text-[0.9rem] leading-7 text-[#5D6B85]">
-                We match you with the right expert based on your answers, no searching required.
-              </p>
-            </div>
-
             <FaqAccordion />
           </div>
         </div>

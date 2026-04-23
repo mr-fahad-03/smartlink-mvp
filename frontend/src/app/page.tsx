@@ -207,6 +207,61 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── CTA BANNER ── */}
+      <section className="pb-14">
+        <div className="mx-auto w-full max-w-5xl px-6">
+          <div className="rounded-[28px] bg-[#356AF6] p-8 text-center shadow-[0_20px_44px_rgba(53,106,246,0.28)] sm:p-10">
+            <h2 className="text-[1.7rem] font-semibold tracking-tight text-white sm:text-[2rem]">
+              Stop searching. Get matched in seconds.
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-[0.96rem] leading-7 text-white/80">
+              Answer a few questions and get matched instantly.
+            </p>
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <Button
+                asChild
+                size="lg"
+                className="h-12 rounded-xl bg-white px-7 text-[1rem] font-semibold text-[#356AF6] shadow-[0_8px_18px_rgba(0,0,0,0.12)] hover:bg-white/90"
+              >
+                <Link href="/quiz">
+                  Find My Expert
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="ghost"
+                className="h-12 rounded-xl border border-white/30 px-6 text-[1rem] font-semibold text-white hover:bg-white/10"
+              >
+                <Link href="/expert-apply">Join as an Expert</Link>
+              </Button>
+            </div>
+            <p className="mt-5 text-[0.82rem] text-white/60">
+              You are not locked in — explore options before contacting anyone.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section id="faq" className="scroll-mt-24 pb-16">
+        <div className="mx-auto w-full max-w-5xl px-6">
+          <div className="rounded-[28px] border border-[#D9E3F3] bg-white/90 p-7 shadow-[0_16px_36px_rgba(56,75,107,0.07)] sm:p-8">
+            <div className="mb-6 max-w-xl">
+              <p className="text-[0.78rem] font-semibold uppercase tracking-[0.16em] text-[#356AF6]">
+                FAQ
+              </p>
+              <h2 className="mt-2 text-[1.65rem] font-semibold tracking-tight text-[#111827]">
+                Common questions
+              </h2>
+            </div>
+
+            <FaqAccordion />
+          </div>
+        </div>
+      </section>
+
       {/* ── HOW IT WORKS ── */}
       <section id="how-it-works" className="scroll-mt-24 pb-14">
         <div className="mx-auto w-full max-w-5xl px-6">
@@ -289,61 +344,6 @@ export default function Home() {
                 </span>
               ))}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA BANNER ── */}
-      <section className="pb-14">
-        <div className="mx-auto w-full max-w-5xl px-6">
-          <div className="rounded-[28px] bg-[#356AF6] p-8 text-center shadow-[0_20px_44px_rgba(53,106,246,0.28)] sm:p-10">
-            <h2 className="text-[1.7rem] font-semibold tracking-tight text-white sm:text-[2rem]">
-              Stop searching. Get matched in seconds.
-            </h2>
-            <p className="mx-auto mt-3 max-w-md text-[0.96rem] leading-7 text-white/80">
-              Answer a few questions and get matched instantly.
-            </p>
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-              <Button
-                asChild
-                size="lg"
-                className="h-12 rounded-xl bg-white px-7 text-[1rem] font-semibold text-[#356AF6] shadow-[0_8px_18px_rgba(0,0,0,0.12)] hover:bg-white/90"
-              >
-                <Link href="/quiz">
-                  Find My Expert
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="ghost"
-                className="h-12 rounded-xl border border-white/30 px-6 text-[1rem] font-semibold text-white hover:bg-white/10"
-              >
-                <Link href="/expert-apply">Join as an Expert</Link>
-              </Button>
-            </div>
-            <p className="mt-5 text-[0.82rem] text-white/60">
-              You are not locked in — explore options before contacting anyone.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── FAQ ── */}
-      <section id="faq" className="scroll-mt-24 pb-16">
-        <div className="mx-auto w-full max-w-5xl px-6">
-          <div className="rounded-[28px] border border-[#D9E3F3] bg-white/90 p-7 shadow-[0_16px_36px_rgba(56,75,107,0.07)] sm:p-8">
-            <div className="mb-6 max-w-xl">
-              <p className="text-[0.78rem] font-semibold uppercase tracking-[0.16em] text-[#356AF6]">
-                FAQ
-              </p>
-              <h2 className="mt-2 text-[1.65rem] font-semibold tracking-tight text-[#111827]">
-                Common questions
-              </h2>
-            </div>
-
-            <FaqAccordion />
           </div>
         </div>
       </section>

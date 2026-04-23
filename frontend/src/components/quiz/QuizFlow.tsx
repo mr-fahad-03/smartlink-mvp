@@ -581,7 +581,6 @@ function calculateAssessment(
 export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   const router = useRouter();
   const reducedMotion = useReducedMotion();
-  const nextQuestionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const locationBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -600,7 +599,6 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   const [answers, setAnswers] = useState<Record<string, string>>(() => initialAnswers);
   const [currentIndex, setCurrentIndex] = useState(() => getFirstUnansweredIndex(initialPrompts, initialAnswers));
   const [flowStep, setFlowStep] = useState<FlowStep>("quiz");
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLocationSuggestionsOpen, setIsLocationSuggestionsOpen] = useState(false);
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<LeadCaptureFormValues>({
@@ -622,7 +620,6 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
 
   useEffect(() => {
     return () => {
-      if (nextQuestionTimeout.current) clearTimeout(nextQuestionTimeout.current);
       if (loadingTimeout.current) clearTimeout(loadingTimeout.current);
       if (locationBlurTimeout.current) clearTimeout(locationBlurTimeout.current);
     };
@@ -695,6 +692,7 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   const selectedDiagnosticCategory = isBusinessAudience ? selectedBusinessCategory : selectedPersonalCategory;
   const selectedDiagnosticSituation = isBusinessAudience ? selectedBusinessSituation : selectedPersonalSituation;
   const selectedDiagnosticGoal = isBusinessAudience ? selectedBusinessGoal : selectedPersonalGoal;
+  const isFirstQuestion = currentIndex <= 0;
 
   useEffect(() => {
     if (locationScope !== "bahamas") {
@@ -728,29 +726,47 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   };
 
   const handleOptionSelect = (prompt: QuizPrompt, option: QuizOption) => {
-    if (isTransitioning || (flowStep !== "quiz" && flowStep !== "cyberIntro")) return;
-    const nextAnswers = { ...answers, [prompt.id]: option.id };
-    setAnswers(nextAnswers);
-    setIsTransitioning(true);
-    if (nextQuestionTimeout.current) clearTimeout(nextQuestionTimeout.current);
-    nextQuestionTimeout.current = setTimeout(() => {
-      const shouldOpenCyberIntro = currentAudience !== "business-owner" && prompt.id === "problem_need" && option.id === "need_cybersecurity";
-      if (shouldOpenCyberIntro) {
-        setFlowStep("cyberIntro");
-      } else {
-        const nextPromptIndex = prompts.findIndex(
-          (candidate, index) => index > currentIndex && !nextAnswers[candidate.id],
-        );
-        setCurrentIndex(nextPromptIndex === -1 ? prompts.length : nextPromptIndex);
-      }
-      setIsTransitioning(false);
-    }, 220);
+    if (flowStep !== "quiz") return;
+    setAnswers((previous) => ({ ...previous, [prompt.id]: option.id }));
+
+    const shouldOpenCyberIntro =
+      currentAudience !== "business-owner" &&
+      prompt.id === "problem_need" &&
+      option.id === "need_cybersecurity";
+
+    if (shouldOpenCyberIntro) {
+      setFlowStep("cyberIntro");
+      return;
+    }
+
+    const isLastQuestion = currentIndex >= prompts.length - 1;
+    if (isLastQuestion) {
+      setCurrentIndex(prompts.length);
+      return;
+    }
+
+    setCurrentIndex((previous) => Math.min(previous + 1, prompts.length));
+  };
+
+  const handlePreviousQuestion = () => {
+    if (flowStep !== "quiz") return;
+    setCurrentIndex((previous) => Math.max(previous - 1, 0));
+  };
+
+  const goBackFromCyberIntro = () => {
+    setFlowStep("quiz");
   };
 
   const continueCyberIntro = () => {
     setFlowStep("quiz");
-    setCurrentIndex((previous) => previous + 1);
+    setCurrentIndex((previous) => Math.min(previous + 1, prompts.length));
   };
+
+  const handleBackToQuiz = () => {
+    setFlowStep("quiz");
+    setCurrentIndex(Math.max(prompts.length - 1, 0));
+  };
+
   const handleLeadCaptureSubmit = (values: LeadCaptureFormValues) => {
     const submittedAt = new Date().toISOString();
     const priorityActions = buildPriorityActions(selectedCategory, answers);
@@ -908,10 +924,32 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                   <Badge className="bg-[#EEF3FF] text-[#356AF6]">Cybersecurity Flow</Badge>
                   <h2 className="mt-4 text-3xl font-semibold tracking-tight text-[#111827]">Let&apos;s quickly check your setup (takes 30 seconds)</h2>
                   <p className="mt-3 text-base leading-7 text-[#5D6B85]">We&apos;ll check a few basics: account protection, backups, virus defences, and recovery readiness. Takes about 30 seconds.</p>
-                  <Button type="button" onClick={continueCyberIntro} size="lg" className="mt-6 h-12 rounded-xl bg-[#356AF6] px-6 text-white hover:bg-[#2C59D8]">Continue</Button>
+                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={goBackFromCyberIntro}
+                      size="lg"
+                      className="h-12 rounded-xl border-[#D9E3F3] px-6 text-[#111827] hover:bg-[#F7FAFF]"
+                    >
+                      Previous
+                    </Button>
+                    <Button type="button" onClick={continueCyberIntro} size="lg" className="h-12 rounded-xl bg-[#356AF6] px-6 text-white hover:bg-[#2C59D8]">Continue</Button>
+                  </div>
                 </motion.div>
               ) : currentPrompt ? (
                 <motion.div key={currentPrompt.id} initial={{ opacity: 0, x: reducedMotion ? 0 : 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: reducedMotion ? 0 : -16 }} transition={{ duration: 0.2 }} className="mt-8">
+                  <div className="mb-5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePreviousQuestion}
+                      disabled={isFirstQuestion}
+                      className="h-10 rounded-xl border-[#D9E3F3] px-4 text-[#111827] hover:bg-[#F7FAFF]"
+                    >
+                      Previous
+                    </Button>
+                  </div>
                   <div className="max-w-3xl">
                     <h2 className="text-3xl font-semibold tracking-tight text-[#111827] sm:text-4xl">{currentPrompt.text}</h2>
                     {currentPrompt.helper ? <p className="mt-3 text-base leading-7 text-[#5D6B85]">{currentPrompt.helper}</p> : null}
@@ -1288,7 +1326,18 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                     </div>
                   ) : null}
 
-                  <Button type="submit" size="lg" className="h-12 w-full bg-[#356AF6] text-white hover:bg-[#2C59D8]">View My Results</Button>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleBackToQuiz}
+                      size="lg"
+                      className="h-12 rounded-xl border-[#D9E3F3] px-6 text-[#111827] hover:bg-[#F7FAFF]"
+                    >
+                      Back to Questions
+                    </Button>
+                    <Button type="submit" size="lg" className="h-12 flex-1 bg-[#356AF6] text-white hover:bg-[#2C59D8]">View My Results</Button>
+                  </div>
                 </form>
               </div>
             </div>

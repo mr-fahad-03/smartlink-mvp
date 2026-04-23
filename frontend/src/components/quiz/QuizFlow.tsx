@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -137,6 +136,22 @@ const AUDIENCE_SEGMENTS: { id: AudienceSegment; label: string }[] = [
 ];
 
 const HELP_CATEGORY_MAP: Record<string, QuizCategory> = {
+  biz_need_start_setup: "Operations",
+  biz_need_grow_scale: "Growth",
+  biz_need_fix_problem: "Operations",
+  biz_need_manage_operations_systems: "Systems",
+  biz_need_legal_compliance: "Legal Help",
+  biz_need_accounting_taxes_finances: "Financial Advice",
+  biz_need_technology_it_issues: "Systems",
+  biz_need_marketing_getting_customers: "Growth",
+  personal_need_career_job: "Career Help",
+  personal_need_money_budget_debt: "Financial Advice",
+  personal_need_legal_personal_matters: "Legal Help",
+  personal_need_technology_it_help: "Personal Tech Support",
+  personal_need_business_side_hustle: "Growth",
+  personal_need_education_learning: "Career Help",
+  personal_need_guidance_life_decisions: "General Support",
+  personal_need_not_sure: "General Support",
   need_operations: "Operations",
   need_cybersecurity: "Cybersecurity",
   need_systems: "Systems",
@@ -147,6 +162,72 @@ const HELP_CATEGORY_MAP: Record<string, QuizCategory> = {
   need_personal_tech_support: "Personal Tech Support",
   need_general_support: "General Support",
 };
+
+const BUSINESS_DIAGNOSTIC_PROMPT_IDS = [
+  "business_primary_need",
+  "business_situation",
+  "business_goal",
+] as const;
+
+const PERSONAL_DIAGNOSTIC_PROMPT_IDS = [
+  "personal_primary_need",
+  "personal_situation",
+  "personal_goal",
+] as const;
+
+const BUSINESS_PRIMARY_HELP_OPTIONS: QuizOption[] = [
+  { id: "biz_need_start_setup", label: "Starting or setting up a business", text: "Starting or setting up a business", support: "You need structure, requirements, and the right launch path.", riskPoints: 5 },
+  { id: "biz_need_grow_scale", label: "Growing or scaling my business", text: "Growing or scaling my business", support: "You want stronger momentum and sustainable growth.", riskPoints: 4 },
+  { id: "biz_need_fix_problem", label: "Fixing a problem in my business", text: "Fixing a problem in my business", support: "You need practical support to resolve a blocker quickly.", riskPoints: 6 },
+  { id: "biz_need_manage_operations_systems", label: "Managing operations or systems", text: "Managing operations or systems", support: "You need cleaner workflows, systems, and execution.", riskPoints: 5 },
+  { id: "biz_need_legal_compliance", label: "Legal or compliance support", text: "Legal or compliance support", support: "You need clear legal direction and compliance confidence.", riskPoints: 6 },
+  { id: "biz_need_accounting_taxes_finances", label: "Accounting, taxes, or finances", text: "Accounting, taxes, or finances", support: "You need clarity on financial decisions and obligations.", riskPoints: 5 },
+  { id: "biz_need_technology_it_issues", label: "Technology or IT issues", text: "Technology or IT issues", support: "You need reliable technical support for systems and tools.", riskPoints: 5 },
+  { id: "biz_need_marketing_getting_customers", label: "Marketing or getting customers", text: "Marketing or getting customers", support: "You need better visibility, leads, and customer traction.", riskPoints: 4 },
+];
+
+const BUSINESS_SITUATION_OPTIONS: QuizOption[] = [
+  { id: "situation_start", label: "I don't know where to start", text: "I don't know where to start", support: "You need a clear first move.", riskPoints: 4 },
+  { id: "situation_not_working", label: "Something isn't working", text: "Something isn't working", support: "A blocker is slowing progress.", riskPoints: 6 },
+  { id: "situation_need_advice", label: "I need expert advice before making a decision", text: "I need expert advice before making a decision", support: "You need confidence before committing.", riskPoints: 4 },
+  { id: "situation_failed", label: "I tried before but it didn't work", text: "I tried before but it didn't work", support: "An earlier approach did not solve it.", riskPoints: 7 },
+  { id: "situation_urgent", label: "I need help urgently", text: "I need help urgently", support: "Time pressure is high.", riskPoints: 8 },
+];
+
+const BUSINESS_GOAL_OPTIONS: QuizOption[] = [
+  { id: "goal_get_unstuck", label: "Get unstuck and move forward", text: "Get unstuck and move forward", support: "You want clear momentum again.", riskPoints: 4 },
+  { id: "goal_save_time", label: "Save time and avoid mistakes", text: "Save time and avoid mistakes", support: "You want a safer and faster path.", riskPoints: 3 },
+  { id: "goal_right_decision", label: "Make the right decision", text: "Make the right decision", support: "You want confidence in the next move.", riskPoints: 3 },
+  { id: "goal_fix_urgent_issue", label: "Fix an urgent issue", text: "Fix an urgent issue", support: "You need immediate problem resolution.", riskPoints: 8 },
+  { id: "goal_grow_revenue", label: "Grow faster / increase revenue", text: "Grow faster / increase revenue", support: "You want stronger growth outcomes.", riskPoints: 4 },
+];
+
+const PERSONAL_PRIMARY_HELP_OPTIONS: QuizOption[] = [
+  { id: "personal_need_career_job", label: "Career or job decisions", text: "Career or job decisions", support: "You need guidance on your next career move.", riskPoints: 4 },
+  { id: "personal_need_money_budget_debt", label: "Money, budgeting, or debt", text: "Money, budgeting, or debt", support: "You need practical financial clarity and support.", riskPoints: 5 },
+  { id: "personal_need_legal_personal_matters", label: "Legal or personal matters", text: "Legal or personal matters", support: "You need clear legal or personal direction.", riskPoints: 5 },
+  { id: "personal_need_technology_it_help", label: "Technology or IT help", text: "Technology or IT help", support: "You need help solving a personal tech issue.", riskPoints: 4 },
+  { id: "personal_need_business_side_hustle", label: "Starting a business or side hustle", text: "Starting a business or side hustle", support: "You need support to launch confidently.", riskPoints: 4 },
+  { id: "personal_need_education_learning", label: "Education or learning", text: "Education or learning", support: "You need help choosing or planning your learning path.", riskPoints: 3 },
+  { id: "personal_need_guidance_life_decisions", label: "Personal guidance or life decisions", text: "Personal guidance or life decisions", support: "You need trusted support for a personal decision.", riskPoints: 4 },
+  { id: "personal_need_not_sure", label: "Something else / not sure", text: "Something else / not sure", support: "You need clarity before choosing the right support path.", riskPoints: 4 },
+];
+
+const PERSONAL_SITUATION_OPTIONS: QuizOption[] = [
+  { id: "personal_situation_start", label: "I don't know where to start", text: "I don't know where to start", support: "You need a simple first step.", riskPoints: 4 },
+  { id: "personal_situation_stuck", label: "I'm feeling stuck", text: "I'm feeling stuck", support: "You need help breaking through a blocker.", riskPoints: 5 },
+  { id: "personal_situation_need_advice", label: "I need advice before making a decision", text: "I need advice before making a decision", support: "You want confidence before moving forward.", riskPoints: 4 },
+  { id: "personal_situation_failed", label: "I tried before but it didn't work", text: "I tried before but it didn't work", support: "A previous attempt did not solve the issue.", riskPoints: 6 },
+  { id: "personal_situation_urgent", label: "I need help urgently", text: "I need help urgently", support: "You need immediate support.", riskPoints: 8 },
+];
+
+const PERSONAL_GOAL_OPTIONS: QuizOption[] = [
+  { id: "personal_goal_clarity_direction", label: "Get clarity and direction", text: "Get clarity and direction", support: "You want a clearer path forward.", riskPoints: 3 },
+  { id: "personal_goal_solve_problem", label: "Solve a specific problem", text: "Solve a specific problem", support: "You want a direct fix to a clear issue.", riskPoints: 5 },
+  { id: "personal_goal_right_decision", label: "Make the right decision", text: "Make the right decision", support: "You want confidence in your next choice.", riskPoints: 3 },
+  { id: "personal_goal_save_time", label: "Save time and avoid mistakes", text: "Save time and avoid mistakes", support: "You want a smarter and faster approach.", riskPoints: 3 },
+  { id: "personal_goal_improve_situation", label: "Improve my situation", text: "Improve my situation", support: "You want practical progress in your current situation.", riskPoints: 4 },
+];
 
 const SITUATION_OPTIONS: QuizOption[] = [
   { id: "situation_stuck", label: "My application is stuck", text: "My application is stuck", support: "You started, but progress has slowed or stalled.", riskPoints: 6 },
@@ -271,6 +352,58 @@ function getHelpOptionsForAudience(audience?: AudienceSegment) {
   return BUSINESS_HELP_OPTIONS;
 }
 
+function getBusinessDiagnosticPrompts(selectedCategory: QuizCategory): QuizPrompt[] {
+  return [
+    {
+      id: BUSINESS_DIAGNOSTIC_PROMPT_IDS[0],
+      text: "What do you need help with right now?",
+      helper: "Pick the closest category so we can route you to the right expert type.",
+      category: selectedCategory,
+      options: BUSINESS_PRIMARY_HELP_OPTIONS,
+    },
+    {
+      id: BUSINESS_DIAGNOSTIC_PROMPT_IDS[1],
+      text: "What best describes your situation?",
+      helper: "This gives us context and urgency for smarter matching.",
+      category: selectedCategory,
+      options: BUSINESS_SITUATION_OPTIONS,
+    },
+    {
+      id: BUSINESS_DIAGNOSTIC_PROMPT_IDS[2],
+      text: "What are you trying to achieve?",
+      helper: "Your goal helps us prioritize the best expert fit.",
+      category: selectedCategory,
+      options: BUSINESS_GOAL_OPTIONS,
+    },
+  ];
+}
+
+function getPersonalDiagnosticPrompts(selectedCategory: QuizCategory): QuizPrompt[] {
+  return [
+    {
+      id: PERSONAL_DIAGNOSTIC_PROMPT_IDS[0],
+      text: "What do you need help with today?",
+      helper: "Pick the option that feels closest to what you are dealing with.",
+      category: selectedCategory,
+      options: PERSONAL_PRIMARY_HELP_OPTIONS,
+    },
+    {
+      id: PERSONAL_DIAGNOSTIC_PROMPT_IDS[1],
+      text: "What best describes your situation?",
+      helper: "This helps us understand your context and urgency.",
+      category: selectedCategory,
+      options: PERSONAL_SITUATION_OPTIONS,
+    },
+    {
+      id: PERSONAL_DIAGNOSTIC_PROMPT_IDS[2],
+      text: "What are you trying to achieve?",
+      helper: "Your goal helps us match you to the right support faster.",
+      category: selectedCategory,
+      options: PERSONAL_GOAL_OPTIONS,
+    },
+  ];
+}
+
 function getBasePrompts(selectedCategory: QuizCategory, audience?: AudienceSegment): QuizPrompt[] {
   const helpOptions = getHelpOptionsForAudience(audience);
 
@@ -283,11 +416,65 @@ function getBasePrompts(selectedCategory: QuizCategory, audience?: AudienceSegme
   ];
 }
 
-function buildQuizPrompts(selectedHelpId?: string, audience?: AudienceSegment): QuizPrompt[] {
-  const selectedCategory = HELP_CATEGORY_MAP[selectedHelpId ?? ""] ?? "General Support";
+function buildQuizPrompts(selectedRoutingId?: string, audience?: AudienceSegment): QuizPrompt[] {
+  const selectedCategory = HELP_CATEGORY_MAP[selectedRoutingId ?? ""] ?? "General Support";
+  if (audience === "business-owner") {
+    return getBusinessDiagnosticPrompts(selectedCategory);
+  }
+  if (audience === "personal-help") {
+    return getPersonalDiagnosticPrompts(selectedCategory);
+  }
   const basePrompts = getBasePrompts(selectedCategory, audience);
-  if (selectedHelpId !== "need_cybersecurity") return basePrompts;
+  if (selectedRoutingId !== "need_cybersecurity") return basePrompts;
   return [basePrompts[0], basePrompts[1], ...CYBER_CHECK_PROMPTS, basePrompts[2], basePrompts[3], basePrompts[4]];
+}
+
+function deriveInitialAnswers(initialSituation: string | undefined, audience: AudienceSegment) {
+  if (!initialSituation) {
+    return {} as Record<string, string>;
+  }
+
+  if (audience === "business-owner") {
+    if (BUSINESS_SITUATION_OPTIONS.some((option) => option.id === initialSituation)) {
+      return { business_situation: initialSituation };
+    }
+    if (initialSituation === "situation_business_help") {
+      return { business_primary_need: "biz_need_fix_problem" };
+    }
+    if (initialSituation === "situation_trust") {
+      return { business_situation: "situation_need_advice" };
+    }
+    return {} as Record<string, string>;
+  }
+
+  if (audience === "personal-help") {
+    if (initialSituation === "situation_start") {
+      return { personal_situation: "personal_situation_start" };
+    }
+    if (initialSituation === "situation_not_working") {
+      return { personal_situation: "personal_situation_stuck" };
+    }
+    if (initialSituation === "situation_need_advice" || initialSituation === "situation_trust") {
+      return { personal_situation: "personal_situation_need_advice" };
+    }
+    if (initialSituation === "situation_failed") {
+      return { personal_situation: "personal_situation_failed" };
+    }
+    if (initialSituation === "situation_urgent") {
+      return { personal_situation: "personal_situation_urgent" };
+    }
+    return {} as Record<string, string>;
+  }
+
+  if (SITUATION_OPTIONS.some((option) => option.id === initialSituation)) {
+    return { situation_now: initialSituation };
+  }
+  return {} as Record<string, string>;
+}
+
+function getFirstUnansweredIndex(prompts: QuizPrompt[], answers: Record<string, string>) {
+  const firstUnansweredIndex = prompts.findIndex((prompt) => !answers[prompt.id]);
+  return firstUnansweredIndex === -1 ? prompts.length : firstUnansweredIndex;
 }
 
 function getLocationSuggestions(value?: string, scope?: "bahamas" | "outside-bahamas" | "") {
@@ -367,8 +554,20 @@ function buildPriorityActions(category: QuizCategory, answers: Record<string, st
   return ["Clarify the immediate blocker so the right support path is obvious.", "Prioritize the next practical action instead of trying to solve everything at once.", "Connect with the right expert to move forward faster."];
 }
 
-function calculateAssessment(prompts: QuizPrompt[], answers: Record<string, string>, selectedCategory: QuizCategory) {
-  const includedPromptIds = selectedCategory === "Cybersecurity" ? prompts.map((prompt) => prompt.id) : ["situation_now", "problem_need", "urgency", "budget"];
+function calculateAssessment(
+  prompts: QuizPrompt[],
+  answers: Record<string, string>,
+  selectedCategory: QuizCategory,
+  audience: AudienceSegment,
+) {
+  const includedPromptIds =
+    audience === "business-owner"
+      ? [...BUSINESS_DIAGNOSTIC_PROMPT_IDS]
+      : audience === "personal-help"
+        ? [...PERSONAL_DIAGNOSTIC_PROMPT_IDS]
+      : selectedCategory === "Cybersecurity"
+        ? prompts.map((prompt) => prompt.id)
+        : ["situation_now", "problem_need", "urgency", "budget"];
   const includedPrompts = prompts.filter((prompt) => includedPromptIds.includes(prompt.id));
   const totalRiskPoints = includedPrompts.reduce((sum, prompt) => {
     const selectedOption = getSelectedOption(prompt.options, answers[prompt.id]);
@@ -386,16 +585,20 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   const loadingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const locationBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [answers, setAnswers] = useState<Record<string, string>>(() => {
-    if (initialSituation && SITUATION_OPTIONS.some((option) => option.id === initialSituation)) {
-      return { situation_now: initialSituation };
-    }
+  const selectedAudience = AUDIENCE_SEGMENTS.some((segment) => segment.id === initialAudience)
+    ? (initialAudience as AudienceSegment)
+    : undefined;
+  const currentAudience = selectedAudience ?? "business-owner";
+  const initialAnswers = deriveInitialAnswers(initialSituation, currentAudience);
+  const initialRoutingId = currentAudience === "business-owner"
+    ? initialAnswers.business_primary_need
+    : currentAudience === "personal-help"
+      ? initialAnswers.personal_primary_need
+      : initialAnswers.problem_need;
+  const initialPrompts = buildQuizPrompts(initialRoutingId, currentAudience);
 
-    return {} as Record<string, string>;
-  });
-  const [currentIndex, setCurrentIndex] = useState(
-    initialSituation && SITUATION_OPTIONS.some((option) => option.id === initialSituation) ? 1 : 0,
-  );
+  const [answers, setAnswers] = useState<Record<string, string>>(() => initialAnswers);
+  const [currentIndex, setCurrentIndex] = useState(() => getFirstUnansweredIndex(initialPrompts, initialAnswers));
   const [flowStep, setFlowStep] = useState<FlowStep>("quiz");
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLocationSuggestionsOpen, setIsLocationSuggestionsOpen] = useState(false);
@@ -425,18 +628,21 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
     };
   }, []);
 
-  const selectedAudience = AUDIENCE_SEGMENTS.some((segment) => segment.id === initialAudience)
-    ? (initialAudience as AudienceSegment)
-    : undefined;
-  const currentAudience = selectedAudience ?? "business-owner";
-  const selectedHelpId = answers.problem_need;
-  const selectedAudienceLabel = AUDIENCE_SEGMENTS.find((segment) => segment.id === selectedAudience)?.label;
-  const selectedCategory = HELP_CATEGORY_MAP[selectedHelpId ?? ""] ?? "General Support";
-  const prompts = useMemo(() => buildQuizPrompts(selectedHelpId, currentAudience), [selectedHelpId, currentAudience]);
+  const selectedRoutingId = currentAudience === "business-owner"
+    ? answers.business_primary_need
+    : currentAudience === "personal-help"
+      ? answers.personal_primary_need
+      : answers.problem_need;
+  const selectedAudienceLabel = AUDIENCE_SEGMENTS.find((segment) => segment.id === currentAudience)?.label;
+  const selectedCategory = HELP_CATEGORY_MAP[selectedRoutingId ?? ""] ?? "General Support";
+  const prompts = useMemo(() => buildQuizPrompts(selectedRoutingId, currentAudience), [selectedRoutingId, currentAudience]);
   const totalQuestions = prompts.length;
   const answeredCount = prompts.filter((prompt) => Boolean(answers[prompt.id])).length;
   const currentPrompt = prompts[currentIndex];
-  const assessment = useMemo(() => calculateAssessment(prompts, answers, selectedCategory), [answers, prompts, selectedCategory]);
+  const assessment = useMemo(
+    () => calculateAssessment(prompts, answers, selectedCategory, currentAudience),
+    [answers, prompts, selectedCategory, currentAudience],
+  );
   const displayRiskLevel = toDisplayRiskLevel(assessment.normalizedScore);
   const progressValue = flowStep === "quiz" || flowStep === "cyberIntro" ? (totalQuestions === 0 ? 0 : Math.round((answeredCount / totalQuestions) * 100)) : 100;
 
@@ -454,13 +660,14 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
 
   const locationScope = watch("locationScope");
   const leadLocationValue = watch("location");
-  const selectedIsland = watch("island");
   const filteredLocationSuggestions = useMemo(
     () => getLocationSuggestions(leadLocationValue, locationScope).slice(0, 5),
     [leadLocationValue, locationScope],
   );
   const assessmentMode = deriveAssessmentMode(selectedCategory);
   const isBusinessAudience = currentAudience === "business-owner";
+  const isPersonalAudience = currentAudience === "personal-help";
+  const isDiagnosticAudience = isBusinessAudience || isPersonalAudience;
   const modeLabel =
     assessmentMode === "cybersecurity-risk"
       ? "Cybersecurity Risk Mode"
@@ -469,19 +676,25 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
         : currentAudience === "not-sure"
           ? "Guided Support Mode"
           : "Business Services Mode";
-  const currentViewLabel = flowStep === "quiz" ? `Question ${Math.min(currentIndex + 1, totalQuestions)} of ${totalQuestions}` : flowStep === "cyberIntro" ? "Quick Setup Check" : flowStep === "lead" ? "Lead Capture" : "Building Results";
-  const stepLabel = flowStep === "quiz" || flowStep === "cyberIntro" ? "Step 1 of 3" : flowStep === "lead" ? "Step 2 of 3" : "Step 3 of 3";
-  const nextStepLabel = flowStep === "quiz"
-    ? currentPrompt?.id === "problem_need" && answers.problem_need === "need_cybersecurity"
-      ? "You will see a short 30-second setup check next."
-      : answeredCount >= totalQuestions - 1
-        ? "Complete the form to unlock your results and matched experts."
-        : "Choose the next option to keep moving."
-    : flowStep === "cyberIntro"
-      ? "You are about to answer a few simple cybersecurity check questions."
-      : flowStep === "lead"
-        ? "Submit your details to view results and matched experts."
-        : "You will be redirected to your personalized results page.";
+  const stepLabel = flowStep === "quiz" || flowStep === "cyberIntro"
+    ? `Step ${Math.min(currentIndex + 1, totalQuestions)} of ${totalQuestions}`
+    : flowStep === "lead"
+      ? "Step 2 of 3"
+      : "Step 3 of 3";
+  const selectedBusinessCategory = getSelectedOption(BUSINESS_PRIMARY_HELP_OPTIONS, answers.business_primary_need);
+  const selectedBusinessSituation = getSelectedOption(BUSINESS_SITUATION_OPTIONS, answers.business_situation);
+  const selectedBusinessGoal = getSelectedOption(BUSINESS_GOAL_OPTIONS, answers.business_goal);
+  const selectedPersonalCategory = getSelectedOption(PERSONAL_PRIMARY_HELP_OPTIONS, answers.personal_primary_need);
+  const selectedPersonalSituation = getSelectedOption(PERSONAL_SITUATION_OPTIONS, answers.personal_situation);
+  const selectedPersonalGoal = getSelectedOption(PERSONAL_GOAL_OPTIONS, answers.personal_goal);
+  const selectedLegacySituation = getSelectedOption(SITUATION_OPTIONS, answers.situation_now);
+  const selectedLegacyHelp = getSelectedOption(ALL_HELP_OPTIONS, answers.problem_need);
+  const selectedLocation = getSelectedOption(LOCATION_OPTIONS, answers.location);
+  const selectedUrgency = getSelectedOption(URGENCY_OPTIONS, answers.urgency);
+  const selectedBudget = getSelectedOption(BUDGET_OPTIONS, answers.budget);
+  const selectedDiagnosticCategory = isBusinessAudience ? selectedBusinessCategory : selectedPersonalCategory;
+  const selectedDiagnosticSituation = isBusinessAudience ? selectedBusinessSituation : selectedPersonalSituation;
+  const selectedDiagnosticGoal = isBusinessAudience ? selectedBusinessGoal : selectedPersonalGoal;
 
   useEffect(() => {
     if (locationScope !== "bahamas") {
@@ -516,14 +729,19 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
 
   const handleOptionSelect = (prompt: QuizPrompt, option: QuizOption) => {
     if (isTransitioning || (flowStep !== "quiz" && flowStep !== "cyberIntro")) return;
-    setAnswers((previous) => ({ ...previous, [prompt.id]: option.id }));
+    const nextAnswers = { ...answers, [prompt.id]: option.id };
+    setAnswers(nextAnswers);
     setIsTransitioning(true);
     if (nextQuestionTimeout.current) clearTimeout(nextQuestionTimeout.current);
     nextQuestionTimeout.current = setTimeout(() => {
-      if (prompt.id === "problem_need" && option.id === "need_cybersecurity") {
+      const shouldOpenCyberIntro = currentAudience !== "business-owner" && prompt.id === "problem_need" && option.id === "need_cybersecurity";
+      if (shouldOpenCyberIntro) {
         setFlowStep("cyberIntro");
       } else {
-        setCurrentIndex((previous) => previous + 1);
+        const nextPromptIndex = prompts.findIndex(
+          (candidate, index) => index > currentIndex && !nextAnswers[candidate.id],
+        );
+        setCurrentIndex(nextPromptIndex === -1 ? prompts.length : nextPromptIndex);
       }
       setIsTransitioning(false);
     }, 220);
@@ -536,8 +754,15 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   const handleLeadCaptureSubmit = (values: LeadCaptureFormValues) => {
     const submittedAt = new Date().toISOString();
     const priorityActions = buildPriorityActions(selectedCategory, answers);
-    const budgetPreference = getSelectedOption(BUDGET_OPTIONS, answers.budget)?.text;
-    const urgencyPreference = getSelectedOption(URGENCY_OPTIONS, answers.urgency)?.text;
+    const budgetPreference = selectedBudget?.text;
+    const selectedDiagnosticSituation = isBusinessAudience ? selectedBusinessSituation : selectedPersonalSituation;
+    const selectedDiagnosticCategory = isBusinessAudience ? selectedBusinessCategory : selectedPersonalCategory;
+    const selectedDiagnosticGoal = isBusinessAudience ? selectedBusinessGoal : selectedPersonalGoal;
+    const urgencyPreference = isDiagnosticAudience
+      ? selectedDiagnosticSituation?.id === "situation_urgent" || selectedDiagnosticSituation?.id === "personal_situation_urgent"
+        ? "24-48 hours"
+        : undefined
+      : selectedUrgency?.text;
     const leadTier = deriveLeadTier(
       assessment.normalizedScore,
       selectedCategory,
@@ -556,6 +781,14 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
       values.locationScope === "bahamas" && values.island && !baseLocation.toLowerCase().includes(values.island.toLowerCase())
         ? `${baseLocation}, ${values.island}`
         : baseLocation;
+    const diagnosticProfile = {
+      categoryOptionId: isDiagnosticAudience ? selectedDiagnosticCategory?.id : selectedLegacyHelp?.id,
+      categoryOptionText: isDiagnosticAudience ? selectedDiagnosticCategory?.text : selectedLegacyHelp?.text,
+      situationOptionId: isDiagnosticAudience ? selectedDiagnosticSituation?.id : selectedLegacySituation?.id,
+      situationOptionText: isDiagnosticAudience ? selectedDiagnosticSituation?.text : selectedLegacySituation?.text,
+      goalOptionId: isDiagnosticAudience ? selectedDiagnosticGoal?.id : undefined,
+      goalOptionText: isDiagnosticAudience ? selectedDiagnosticGoal?.text : undefined,
+    };
 
     const responses = prompts.map((prompt) => {
       const selectedOption = getSelectedOption(prompt.options, answers[prompt.id]);
@@ -590,7 +823,7 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
         fullName: values.fullName.trim(),
         workEmail: values.workEmail.trim(),
         phoneNumber: values.phoneNumber.trim() || undefined,
-        audienceSegment: selectedAudience,
+        audienceSegment: currentAudience,
         companyName: values.companyName.trim() || undefined,
         role: values.role || undefined,
         businessType: values.businessType || undefined,
@@ -606,6 +839,7 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
       responses,
       leadTracking: [],
       rankingControlSnapshot: [],
+      diagnosticProfile,
     };
 
     const rankedExperts = rankExpertsForSubmission(payload, payload.highestRiskCategory, mockQuizEnginePayload.experts);
@@ -683,17 +917,29 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                     {currentPrompt.helper ? <p className="mt-3 text-base leading-7 text-[#5D6B85]">{currentPrompt.helper}</p> : null}
                   </div>
                   <div className="mt-6 space-y-3">
-                    {currentPrompt.options.map((option) => (
-                      <button key={option.id} type="button" onClick={() => handleOptionSelect(currentPrompt, option)} className="group w-full rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] px-5 py-4 text-left transition hover:border-[#BFD0F8] hover:bg-white hover:shadow-[0_8px_20px_rgba(56,75,107,0.07)]">
-                        <div className="flex items-center justify-between gap-4">
-                          <div>
-                            <p className="text-base font-semibold text-[#111827]">{option.label}</p>
-                            {option.text && option.text !== option.label ? <p className="mt-1 text-sm text-[#5D6B85]">{option.text}</p> : null}
+                    {currentPrompt.options.map((option) => {
+                      const isSelected = answers[currentPrompt.id] === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => handleOptionSelect(currentPrompt, option)}
+                          className={cn(
+                            "group w-full rounded-2xl border bg-[#FCFDFF] px-5 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#356AF6] focus-visible:ring-offset-2",
+                            isSelected
+                              ? "border-[#356AF6] bg-[#EEF3FF]"
+                              : "border-[#D9E3F3] hover:border-[#BFD0F8] hover:bg-white hover:shadow-[0_8px_20px_rgba(56,75,107,0.07)]",
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <p className="text-base font-semibold text-[#111827]">{option.label}</p>
+                              {option.text && option.text !== option.label ? <p className="mt-1 text-sm text-[#5D6B85]">{option.text}</p> : null}
+                            </div>
                           </div>
-                          <span className="shrink-0 rounded-full bg-[#EEF3FF] px-3 py-1 text-xs font-semibold text-[#356AF6] transition group-hover:bg-[#356AF6] group-hover:text-white">Select</span>
-                        </div>
-                      </button>
-                    ))}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {/* Inline hint */}
@@ -709,10 +955,20 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">Current Snapshot</p>
                 <div className="mt-4 grid gap-3">
                   {selectedAudienceLabel ? <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Audience</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedAudienceLabel}</p></div> : null}
-                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Situation</p><p className="mt-2 text-sm font-semibold text-[#111827]">{getSelectedOption(SITUATION_OPTIONS, answers.situation_now)?.text || "Not selected yet"}</p></div>
-                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Help Needed</p><p className="mt-2 text-sm font-semibold text-[#111827]">{getSelectedOption(ALL_HELP_OPTIONS, answers.problem_need)?.text || "Not selected yet"}</p></div>
-                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Location</p><p className="mt-2 text-sm font-semibold text-[#111827]">{getSelectedOption(LOCATION_OPTIONS, answers.location)?.text || "Not selected yet"}</p></div>
-                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Urgency</p><p className="mt-2 text-sm font-semibold text-[#111827]">{getSelectedOption(URGENCY_OPTIONS, answers.urgency)?.text || "Not selected yet"}</p></div>
+                  {isDiagnosticAudience ? (
+                    <>
+                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Category</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedDiagnosticCategory?.text || "Not selected yet"}</p></div>
+                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Situation</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedDiagnosticSituation?.text || "Not selected yet"}</p></div>
+                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Goal</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedDiagnosticGoal?.text || "Not selected yet"}</p></div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Situation</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedLegacySituation?.text || "Not selected yet"}</p></div>
+                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Help Needed</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedLegacyHelp?.text || "Not selected yet"}</p></div>
+                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Location</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedLocation?.text || "Not selected yet"}</p></div>
+                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Urgency</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedUrgency?.text || "Not selected yet"}</p></div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -721,7 +977,7 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                 <div className="mt-4 space-y-3">
                   <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">Takes 60 seconds · No commitment · Instant results.</p></div>
                   <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">Not sure about an answer? Choose the closest option — the system is designed to guide you even if you’re unsure.</p></div>
-                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">Budget, urgency, and location help us rank the right experts faster.</p></div>
+                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">{isDiagnosticAudience ? "Category, situation, and goal help us match you with the right expert faster." : "Budget, urgency, and location help us rank the right experts faster."}</p></div>
                 </div>
               </div>
             </aside>
@@ -739,9 +995,15 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                   <div className="mt-4 divide-y divide-[#EEF3FF]">
                     {[
                       selectedAudienceLabel ? { label: "Audience", value: selectedAudienceLabel } : null,
-                      { label: "Help needed", value: getSelectedOption(ALL_HELP_OPTIONS, answers.problem_need)?.label || "—" },
-                      { label: "Urgency", value: getSelectedOption(URGENCY_OPTIONS, answers.urgency)?.label || "—" },
-                      { label: "Budget", value: getSelectedOption(BUDGET_OPTIONS, answers.budget)?.label || "—" },
+                      isDiagnosticAudience
+                        ? { label: "Category", value: selectedDiagnosticCategory?.label || "—" }
+                        : { label: "Help needed", value: selectedLegacyHelp?.label || "—" },
+                      isDiagnosticAudience
+                        ? { label: "Situation", value: selectedDiagnosticSituation?.label || "—" }
+                        : { label: "Urgency", value: selectedUrgency?.label || "—" },
+                      isDiagnosticAudience
+                        ? { label: "Goal", value: selectedDiagnosticGoal?.label || "—" }
+                        : { label: "Budget", value: selectedBudget?.label || "—" },
                       { label: "Priority", value: selectedCategory },
                     ].filter((item): item is { label: string; value: string } => Boolean(item)).map((item) => (
                       <div key={item.label} className="flex items-center justify-between py-2.5">

@@ -186,6 +186,15 @@ export interface FeedbackLoopData {
   expertFeedback?: ExpertFeedbackRecord;
 }
 
+export interface DiagnosticProfile {
+  categoryOptionId?: string;
+  categoryOptionText?: string;
+  situationOptionId?: string;
+  situationOptionText?: string;
+  goalOptionId?: string;
+  goalOptionText?: string;
+}
+
 export interface AssessmentSubmission {
   assessmentId: string;
   submittedAt: string;
@@ -205,6 +214,7 @@ export interface AssessmentSubmission {
   responses: AssessmentResponseItem[];
   leadTracking: LeadTrackingRecord[];
   rankingControlSnapshot: RankingControlSnapshot[];
+  diagnosticProfile?: DiagnosticProfile;
   feedbackLoop?: FeedbackLoopData;
   introductionRequests?: IntroductionRequest[];
   expertPerformanceTracking?: ExpertPerformanceRecord[];

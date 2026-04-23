@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
 
@@ -10,8 +11,18 @@ export function InnerNav({ breadcrumb, stepLabel }: InnerNavProps) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2.5">
-        <Link href="/" className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#356AF6] text-sm font-bold text-white">
-          SL
+        <Link
+          href="/"
+          className="flex items-center justify-center rounded-xl border border-[#D9E3F3] bg-white px-2 py-1"
+        >
+          <Image
+            src="/logo.png"
+            alt="SmartLinkBahamas logo"
+            width={2103}
+            height={748}
+            className="h-7 w-auto object-contain"
+            priority
+          />
         </Link>
         <ChevronRight className="h-4 w-4 text-[#C5D3E8]" />
         <span className="text-[0.88rem] font-semibold text-[#111827]">{breadcrumb}</span>

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -122,12 +123,16 @@ export default function Home() {
       {/* Header */}
       <header className="fixed inset-x-0 top-0 z-50 border-b border-[#D9E3F3]/80 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#356AF6] text-sm font-bold text-white">
-              SL
-            </div>
-            <p className="text-[0.95rem] font-semibold text-[#111827]">SmartLinkBahamas</p>
-          </div>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logo.png"
+              alt="SmartLinkBahamas logo"
+              width={2103}
+              height={748}
+              className="h-10 w-auto object-contain"
+              priority
+            />
+          </Link>
 
           <nav className="hidden items-center gap-6 text-sm font-medium text-[#5D6B85] md:flex">
             <a href="#how-it-works" className="transition hover:text-[#111827]">How It Works</a>

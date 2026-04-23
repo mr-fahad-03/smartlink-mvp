@@ -83,6 +83,33 @@ const trustSignals = [
   },
 ];
 
+const quickStartSituations = [
+  {
+    label: "Something isn't working and I don't know why",
+    situation: "situation_not_working",
+  },
+  {
+    label: "I need expert advice before making a decision",
+    situation: "situation_need_advice",
+  },
+  {
+    label: "I need help starting or fixing a business",
+    situation: "situation_business_help",
+  },
+  {
+    label: "I don't know who to trust",
+    situation: "situation_trust",
+  },
+] as const;
+
+const expertCategories = [
+  "Business setup",
+  "Accounting & finance",
+  "Legal support",
+  "IT & cybersecurity",
+  "Personal advice",
+] as const;
+
 export default function Home() {
   return (
     <main className="relative isolate min-h-screen overflow-hidden text-[#111827]">
@@ -156,10 +183,7 @@ export default function Home() {
           <p className="w-full text-center text-[0.78rem] font-medium text-[#8A99B4]">
             Common situations:
           </p>
-          {[
-            { label: "Something isn't working but I'm not sure why", situation: "not-working" },
-            { label: "I need expert advice before making a decision", situation: "need-advice" },
-          ].map(({ label, situation }) => (
+          {quickStartSituations.map(({ label, situation }) => (
             <Link
               key={situation}
               href={`/quiz?situation=${situation}`}
@@ -177,18 +201,39 @@ export default function Home() {
           <div className="rounded-[24px] border border-[#D9E3F3] bg-white/90 p-6 text-center shadow-[0_8px_24px_rgba(56,75,107,0.06)]">
             <p className="text-[1rem] font-semibold text-[#111827]">Most people come here because:</p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-              {[
-                "Something isn't working",
-                "They don't know who to trust",
-                "They need expert advice fast",
-              ].map((reason) => (
-                <span
-                  key={reason}
-                  className="flex items-center gap-2 rounded-full border border-[#D9E3F3] bg-[#F7FAFF] px-4 py-2 text-[0.88rem] font-medium text-[#5D6B85]"
+              {quickStartSituations.map(({ label, situation }) => (
+                <Link
+                  key={situation}
+                  href={`/quiz?situation=${situation}`}
+                  className="group flex items-center gap-2 rounded-full border border-[#D9E3F3] bg-[#F7FAFF] px-4 py-2 text-[0.88rem] font-medium text-[#5D6B85] transition hover:-translate-y-0.5 hover:border-[#7EA5FF] hover:bg-white hover:text-[#356AF6] hover:shadow-[0_10px_20px_rgba(56,75,107,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#356AF6] focus-visible:ring-offset-2"
                 >
-                  <CheckCircle2 className="h-4 w-4 text-[#16A34A]" />
-                  {reason}
-                </span>
+                  <CheckCircle2 className="h-4 w-4 text-[#16A34A] transition group-hover:text-[#356AF6]" />
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── EXPERT CATEGORIES ── */}
+      <section className="pb-12">
+        <div className="mx-auto w-full max-w-5xl px-6">
+          <div className="rounded-[24px] border border-[#D9E3F3] bg-white/90 p-6 shadow-[0_10px_28px_rgba(56,75,107,0.08)]">
+            <p className="text-[0.78rem] font-semibold uppercase tracking-[0.16em] text-[#356AF6]">
+              Expert Categories
+            </p>
+            <h2 className="mt-2 text-[1.4rem] font-semibold tracking-tight text-[#111827]">
+              Get matched with experts in:
+            </h2>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {expertCategories.map((category) => (
+                <div
+                  key={category}
+                  className="flex min-h-16 items-center justify-center rounded-2xl border border-[#D9E3F3] bg-[#F8FBFF] px-3 py-3 text-center text-[0.88rem] font-semibold text-[#2C3A57]"
+                >
+                  {category}
+                </div>
               ))}
             </div>
           </div>

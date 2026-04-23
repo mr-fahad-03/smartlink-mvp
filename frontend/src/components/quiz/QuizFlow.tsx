@@ -155,6 +155,8 @@ const SITUATION_OPTIONS: QuizOption[] = [
   { id: "situation_failed", label: "I tried before but it didn't work", text: "I tried before but it didn't work", support: "You need a stronger plan after an earlier failed attempt.", riskPoints: 7 },
   { id: "situation_not_working", label: "Something isn't working but I'm not sure why", text: "Something isn't working but I'm not sure why", support: "You need clarity before things get worse.", riskPoints: 5 },
   { id: "situation_need_advice", label: "I need expert advice before making a decision", text: "I need expert advice before making a decision", support: "You want confidence before the next move.", riskPoints: 4 },
+  { id: "situation_business_help", label: "I need help starting or fixing a business", text: "I need help starting or fixing a business", support: "You need practical guidance to get a business moving or back on track.", riskPoints: 6 },
+  { id: "situation_trust", label: "I don't know who to trust", text: "I don't know who to trust", support: "You need a trustworthy direction before committing your time or money.", riskPoints: 5 },
 ];
 
 const BUSINESS_HELP_OPTIONS: QuizOption[] = [

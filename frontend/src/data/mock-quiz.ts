@@ -73,6 +73,22 @@ export const mockQuizEnginePayload: QuizEnginePayload = {
                 explanation: "Decision-stage users need clarity before committing to the next move.",
                 tags: ["decision", "advice"],
               },
+              {
+                id: "situation_business_help",
+                label: "G",
+                text: "I need help starting or fixing a business",
+                riskPoints: 6,
+                explanation: "Users need practical support to launch or stabilize business operations.",
+                tags: ["business", "setup", "recovery"],
+              },
+              {
+                id: "situation_trust",
+                label: "H",
+                text: "I don't know who to trust",
+                riskPoints: 5,
+                explanation: "Trust uncertainty usually blocks decisions and delays progress.",
+                tags: ["trust", "uncertainty"],
+              },
             ],
           },
           {

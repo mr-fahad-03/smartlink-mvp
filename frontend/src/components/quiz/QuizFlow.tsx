@@ -163,17 +163,30 @@ const HELP_CATEGORY_MAP: Record<string, QuizCategory> = {
   need_general_support: "General Support",
 };
 
-const BUSINESS_DIAGNOSTIC_PROMPT_IDS = [
-  "business_primary_need",
-  "business_situation",
-  "business_goal",
-] as const;
+type BusinessNeedRoute =
+  | "biz_need_start_setup"
+  | "biz_need_grow_scale"
+  | "biz_need_fix_problem"
+  | "biz_need_manage_operations_systems"
+  | "biz_need_legal_compliance"
+  | "biz_need_accounting_taxes_finances"
+  | "biz_need_technology_it_issues"
+  | "biz_need_marketing_getting_customers";
+
+interface BusinessFollowUpPromptTemplate {
+  id: string;
+  text: string;
+  helper: string;
+  options: QuizOption[];
+}
 
 const PERSONAL_DIAGNOSTIC_PROMPT_IDS = [
   "personal_primary_need",
   "personal_situation",
   "personal_goal",
 ] as const;
+
+const BUSINESS_PRIMARY_PROMPT_ID = "business_primary_need";
 
 const BUSINESS_PRIMARY_HELP_OPTIONS: QuizOption[] = [
   { id: "biz_need_start_setup", label: "Starting or setting up a business", text: "Starting or setting up a business", support: "You need structure, requirements, and the right launch path.", riskPoints: 5 },
@@ -186,21 +199,302 @@ const BUSINESS_PRIMARY_HELP_OPTIONS: QuizOption[] = [
   { id: "biz_need_marketing_getting_customers", label: "Marketing or getting customers", text: "Marketing or getting customers", support: "You need better visibility, leads, and customer traction.", riskPoints: 4 },
 ];
 
-const BUSINESS_SITUATION_OPTIONS: QuizOption[] = [
-  { id: "situation_start", label: "I don't know where to start", text: "I don't know where to start", support: "You need a clear first move.", riskPoints: 4 },
-  { id: "situation_not_working", label: "Something isn't working", text: "Something isn't working", support: "A blocker is slowing progress.", riskPoints: 6 },
-  { id: "situation_need_advice", label: "I need expert advice before making a decision", text: "I need expert advice before making a decision", support: "You need confidence before committing.", riskPoints: 4 },
-  { id: "situation_failed", label: "I tried before but it didn't work", text: "I tried before but it didn't work", support: "An earlier approach did not solve it.", riskPoints: 7 },
-  { id: "situation_urgent", label: "I need help urgently", text: "I need help urgently", support: "Time pressure is high.", riskPoints: 8 },
-];
 
-const BUSINESS_GOAL_OPTIONS: QuizOption[] = [
-  { id: "goal_get_unstuck", label: "Get unstuck and move forward", text: "Get unstuck and move forward", support: "You want clear momentum again.", riskPoints: 4 },
-  { id: "goal_save_time", label: "Save time and avoid mistakes", text: "Save time and avoid mistakes", support: "You want a safer and faster path.", riskPoints: 3 },
-  { id: "goal_right_decision", label: "Make the right decision", text: "Make the right decision", support: "You want confidence in the next move.", riskPoints: 3 },
-  { id: "goal_fix_urgent_issue", label: "Fix an urgent issue", text: "Fix an urgent issue", support: "You need immediate problem resolution.", riskPoints: 8 },
-  { id: "goal_grow_revenue", label: "Grow faster / increase revenue", text: "Grow faster / increase revenue", support: "You want stronger growth outcomes.", riskPoints: 4 },
-];
+
+
+
+
+
+
+
+
+
+
+
+const BUSINESS_FOLLOW_UP_PROMPTS: Record<BusinessNeedRoute, [BusinessFollowUpPromptTemplate, BusinessFollowUpPromptTemplate, BusinessFollowUpPromptTemplate]> = {
+  biz_need_start_setup: [
+    {
+      id: "biz_setup_stage",
+      text: "What stage are you at?",
+      helper: "This helps us match you to setup experts based on where you are now.",
+      options: [
+        { id: "biz_setup_stage_idea", label: "Just an idea", text: "Just an idea", support: "You are early and need foundational clarity.", riskPoints: 5 },
+        { id: "biz_setup_stage_planning", label: "Planning and researching", text: "Planning and researching", support: "You are preparing and validating the path.", riskPoints: 4 },
+        { id: "biz_setup_stage_ready_register", label: "Ready to register", text: "Ready to register", support: "You are close to execution and need precise setup support.", riskPoints: 6 },
+        { id: "biz_setup_stage_started_unsure", label: "Already started but unsure what to do next", text: "Already started but unsure what to do next", support: "You need clarity to avoid early mistakes.", riskPoints: 6 },
+      ],
+    },
+    
+    
+    {
+      id: "biz_setup_need",
+      text: "What do you need help with most?",
+      helper: "Choose the area where expert support would create the biggest immediate impact.",
+      options: [
+        { id: "biz_setup_need_registration", label: "Business registration / legal setup", text: "Business registration / legal setup", support: "You need compliant legal setup from day one.", riskPoints: 6 },
+        { id: "biz_setup_need_plan", label: "Business plan", text: "Business plan", support: "You need strategy and structure before execution.", riskPoints: 4 },
+        { id: "biz_setup_need_funding", label: "Funding or budgeting", text: "Funding or budgeting", support: "You need financial clarity to launch safely.", riskPoints: 5 },
+        { id: "biz_setup_need_structure", label: "Choosing the right structure", text: "Choosing the right structure", support: "You need fit-for-purpose setup decisions early.", riskPoints: 4 },
+        { id: "biz_setup_need_not_sure", label: "Not sure", text: "Not sure", support: "You need guided support to define priorities.", riskPoints: 4 },
+      ],
+    },
+    {
+      id: "biz_setup_concern",
+      text: "What’s your biggest concern?",
+      helper: "This helps us prioritize what to solve first.",
+      options: [
+        { id: "biz_setup_concern_doing_wrong", label: "Doing it wrong", text: "Doing it wrong", support: "You want confidence and fewer costly mistakes.", riskPoints: 6 },
+        { id: "biz_setup_concern_costs", label: "Costs", text: "Costs", support: "Budget pressure is an active concern.", riskPoints: 4 },
+        { id: "biz_setup_concern_start", label: "Not knowing where to start", text: "Not knowing where to start", support: "You need a clear first step.", riskPoints: 5 },
+        { id: "biz_setup_concern_compliance", label: "Compliance issues", text: "Compliance issues", support: "Regulatory confidence is a priority.", riskPoints: 6 },
+      ],
+    },
+  ],
+  biz_need_grow_scale: [
+    {
+      id: "biz_growth_improve",
+      text: "What are you trying to improve?",
+      helper: "We use this to route you to growth-focused experts.",
+      options: [
+        { id: "biz_growth_improve_sales", label: "Increase sales", text: "Increase sales", support: "Revenue growth is your top objective.", riskPoints: 6 },
+        { id: "biz_growth_improve_markets", label: "Expand to new markets", text: "Expand to new markets", support: "You want expansion support and planning.", riskPoints: 5 },
+        { id: "biz_growth_improve_experience", label: "Improve customer experience", text: "Improve customer experience", support: "Retention and satisfaction are key priorities.", riskPoints: 4 },
+        { id: "biz_growth_improve_brand", label: "Build a stronger brand", text: "Build a stronger brand", support: "You want stronger positioning and trust.", riskPoints: 4 },
+      ],
+    },
+    {
+      id: "biz_growth_blocker",
+      text: "What’s holding you back?",
+      helper: "This identifies the most important growth constraint to solve first.",
+      options: [
+        { id: "biz_growth_blocker_customers", label: "Not enough customers", text: "Not enough customers", support: "Demand and customer acquisition are constrained.", riskPoints: 6 },
+        { id: "biz_growth_blocker_marketing", label: "Weak marketing", text: "Weak marketing", support: "Marketing performance needs improvement.", riskPoints: 5 },
+        { id: "biz_growth_blocker_strategy", label: "No clear strategy", text: "No clear strategy", support: "You need a focused plan before scaling.", riskPoints: 5 },
+        { id: "biz_growth_blocker_resources", label: "Limited time/resources", text: "Limited time/resources", support: "Execution capacity is tight.", riskPoints: 4 },
+      ],
+    },
+    {
+      id: "biz_growth_success",
+      text: "What would success look like?",
+      helper: "We’ll use this to align the recommended support path.",
+      options: [
+        { id: "biz_growth_success_revenue", label: "More revenue", text: "More revenue", support: "Financial growth is the key target.", riskPoints: 6 },
+        { id: "biz_growth_success_customers", label: "More customers", text: "More customers", support: "Customer growth is the main KPI.", riskPoints: 5 },
+        { id: "biz_growth_success_systems", label: "Better systems", text: "Better systems", support: "You want scalable operations as you grow.", riskPoints: 3 },
+        { id: "biz_growth_success_less_stress", label: "Less stress", text: "Less stress", support: "You want a smoother growth pace with less operational burden.", riskPoints: 3 },
+      ],
+    },
+  ],
+  biz_need_fix_problem: [
+    {
+      id: "biz_problem_type",
+      text: "What kind of problem are you facing?",
+      helper: "This is a high-value category, so we prioritize clarity and urgency.",
+      options: [
+        { id: "biz_problem_type_losing_money", label: "Losing money", text: "Losing money", support: "Revenue or margin impact needs urgent attention.", riskPoints: 8 },
+        { id: "biz_problem_type_operations", label: "Operational issues", text: "Operational issues", support: "Execution problems are slowing business performance.", riskPoints: 6 },
+        { id: "biz_problem_type_team", label: "Staff/team problems", text: "Staff/team problems", support: "People and delivery challenges are affecting outcomes.", riskPoints: 5 },
+        { id: "biz_problem_type_complaints", label: "Customer complaints", text: "Customer complaints", support: "Customer trust and retention are at risk.", riskPoints: 6 },
+        { id: "biz_problem_type_technical", label: "Technical/system issues", text: "Technical/system issues", support: "System reliability is affecting operations.", riskPoints: 6 },
+      ],
+    },
+    {
+      id: "biz_problem_severity",
+      text: "How serious is the issue?",
+      helper: "Severity helps us prioritize response speed and matching quality.",
+      options: [
+        { id: "biz_problem_severity_urgent", label: "Urgent (affecting business now)", text: "Urgent (affecting business now)", support: "Immediate impact is active.", riskPoints: 8 },
+        { id: "biz_problem_severity_moderate", label: "Moderate (needs fixing soon)", text: "Moderate (needs fixing soon)", support: "The issue is important but not yet critical.", riskPoints: 5 },
+        { id: "biz_problem_severity_minor", label: "Minor (just exploring)", text: "Minor (just exploring)", support: "You are validating options before acting.", riskPoints: 2 },
+      ],
+    },
+    {
+      id: "biz_problem_attempt",
+      text: "What have you tried so far?",
+      helper: "This helps us avoid repeating approaches that already failed.",
+      options: [
+        { id: "biz_problem_attempt_self", label: "Tried fixing it myself", text: "Tried fixing it myself", support: "You need a stronger external perspective.", riskPoints: 4 },
+        { id: "biz_problem_attempt_advice", label: "Asked for advice", text: "Asked for advice", support: "You have partial direction but need execution.", riskPoints: 3 },
+        { id: "biz_problem_attempt_hired_before", label: "Hired someone before", text: "Hired someone before", support: "Past support didn’t fully solve the issue.", riskPoints: 5 },
+        { id: "biz_problem_attempt_none", label: "Haven’t done anything yet", text: "Haven’t done anything yet", support: "You need a practical first move.", riskPoints: 4 },
+      ],
+    },
+  ],
+  biz_need_manage_operations_systems: [
+    {
+      id: "biz_ops_area",
+      text: "What area needs improvement?",
+      helper: "We use this to match operations and systems-focused experts.",
+      options: [
+        { id: "biz_ops_area_workflow", label: "Workflow/processes", text: "Workflow/processes", support: "Core process efficiency needs improvement.", riskPoints: 5 },
+        { id: "biz_ops_area_productivity", label: "Staff productivity", text: "Staff productivity", support: "Team output and coordination can improve.", riskPoints: 4 },
+        { id: "biz_ops_area_customer_management", label: "Customer management", text: "Customer management", support: "Customer operations need stronger structure.", riskPoints: 4 },
+        { id: "biz_ops_area_inventory_tracking", label: "Inventory or tracking", text: "Inventory or tracking", support: "Tracking and control systems need refinement.", riskPoints: 5 },
+      ],
+    },
+    {
+      id: "biz_ops_issue",
+      text: "What’s the main issue?",
+      helper: "This identifies the bottleneck that should be fixed first.",
+      options: [
+        { id: "biz_ops_issue_manual_tasks", label: "Too many manual tasks", text: "Too many manual tasks", support: "Automation and systemization are needed.", riskPoints: 6 },
+        { id: "biz_ops_issue_visibility", label: "Lack of visibility", text: "Lack of visibility", support: "You need better reporting and tracking.", riskPoints: 5 },
+        { id: "biz_ops_issue_disorganization", label: "Disorganization", text: "Disorganization", support: "Process clarity and ownership are missing.", riskPoints: 5 },
+        { id: "biz_ops_issue_inefficiency", label: "Inefficiency", text: "Inefficiency", support: "Current systems are slowing execution.", riskPoints: 5 },
+      ],
+    },
+    {
+      id: "biz_ops_outcome",
+      text: "What do you want?",
+      helper: "This helps determine the right delivery model for support.",
+      options: [
+        { id: "biz_ops_outcome_automation", label: "Automation", text: "Automation", support: "You want to reduce manual effort.", riskPoints: 5 },
+        { id: "biz_ops_outcome_tools", label: "Better systems/tools", text: "Better systems/tools", support: "You need improved operational tooling.", riskPoints: 4 },
+        { id: "biz_ops_outcome_guidance", label: "Expert guidance", text: "Expert guidance", support: "You want strategic implementation support.", riskPoints: 4 },
+        { id: "biz_ops_outcome_full_setup_for_me", label: "Full setup done for me", text: "Full setup done for me", support: "You prefer end-to-end execution by experts.", riskPoints: 6 },
+      ],
+    },
+  ],
+  biz_need_legal_compliance: [
+    {
+      id: "biz_legal_need",
+      text: "What do you need help with?",
+      helper: "Legal clarity helps us route to the right specialist quickly.",
+      options: [
+        { id: "biz_legal_need_contracts", label: "Contracts", text: "Contracts", support: "You need strong agreements and risk control.", riskPoints: 5 },
+        { id: "biz_legal_need_regulatory", label: "Regulatory compliance", text: "Regulatory compliance", support: "Compliance confidence is the main need.", riskPoints: 6 },
+        { id: "biz_legal_need_licensing", label: "Business licensing", text: "Business licensing", support: "Licensing and registration support is needed.", riskPoints: 5 },
+        { id: "biz_legal_need_disputes", label: "Disputes", text: "Disputes", support: "You need timely guidance on a conflict.", riskPoints: 7 },
+      ],
+    },
+    {
+      id: "biz_legal_status",
+      text: "What’s your situation?",
+      helper: "This clarifies whether support should be preventive or reactive.",
+      options: [
+        { id: "biz_legal_status_preventive", label: "Preventive (want to stay compliant)", text: "Preventive (want to stay compliant)", support: "You want to avoid legal issues before they occur.", riskPoints: 3 },
+        { id: "biz_legal_status_issue", label: "Already facing an issue", text: "Already facing an issue", support: "A current legal matter needs resolution.", riskPoints: 7 },
+        { id: "biz_legal_status_documents", label: "Need documents prepared", text: "Need documents prepared", support: "You need legally sound documentation.", riskPoints: 4 },
+        { id: "biz_legal_status_not_sure", label: "Not sure", text: "Not sure", support: "You need guided legal triage before action.", riskPoints: 4 },
+      ],
+    },
+    {
+      id: "biz_legal_urgency",
+      text: "Urgency?",
+      helper: "Urgency helps determine response speed and lead priority.",
+      options: [
+        { id: "biz_legal_urgency_immediate", label: "Immediate", text: "Immediate", support: "Time-critical legal support is needed.", riskPoints: 8 },
+        { id: "biz_legal_urgency_soon", label: "Soon", text: "Soon", support: "Support is needed in the near term.", riskPoints: 5 },
+        { id: "biz_legal_urgency_exploring", label: "Just exploring", text: "Just exploring", support: "You’re gathering direction before acting.", riskPoints: 2 },
+      ],
+    },
+  ],
+  biz_need_accounting_taxes_finances: [
+    {
+      id: "biz_fin_need",
+      text: "What do you need help with?",
+      helper: "Financial needs help us match you to the right advisory profile.",
+      options: [
+        { id: "biz_fin_need_bookkeeping", label: "Bookkeeping", text: "Bookkeeping", support: "You need cleaner and reliable records.", riskPoints: 4 },
+        { id: "biz_fin_need_taxes", label: "Taxes", text: "Taxes", support: "Tax compliance and planning are key.", riskPoints: 6 },
+        { id: "biz_fin_need_planning", label: "Financial planning", text: "Financial planning", support: "You need stronger financial decision support.", riskPoints: 4 },
+        { id: "biz_fin_need_cash_flow", label: "Cash flow issues", text: "Cash flow issues", support: "Cash pressure needs immediate stabilization.", riskPoints: 7 },
+      ],
+    },
+    {
+      id: "biz_fin_problem",
+      text: "What’s the main problem?",
+      helper: "This helps us prioritize your most critical finance risk.",
+      options: [
+        { id: "biz_fin_problem_disorganized", label: "Disorganized finances", text: "Disorganized finances", support: "Financial records and controls need structure.", riskPoints: 5 },
+        { id: "biz_fin_problem_profit", label: "Not making enough profit", text: "Not making enough profit", support: "Profitability needs focused diagnosis.", riskPoints: 6 },
+        { id: "biz_fin_problem_taxes", label: "Don’t understand taxes", text: "Don’t understand taxes", support: "You need tax clarity and compliance support.", riskPoints: 6 },
+        { id: "biz_fin_problem_behind", label: "Falling behind", text: "Falling behind", support: "Backlogs and deadlines are creating risk.", riskPoints: 7 },
+      ],
+    },
+    {
+      id: "biz_fin_outcome",
+      text: "What do you want?",
+      helper: "This determines whether we prioritize advisory or execution-first experts.",
+      options: [
+        { id: "biz_fin_outcome_handle_for_me", label: "Someone to handle it", text: "Someone to handle it", support: "You prefer done-without-friction execution.", riskPoints: 6 },
+        { id: "biz_fin_outcome_guidance", label: "Advice and guidance", text: "Advice and guidance", support: "You want strategic support and decisions.", riskPoints: 4 },
+        { id: "biz_fin_outcome_setup_systems", label: "Setup systems", text: "Setup systems", support: "You want repeatable financial processes.", riskPoints: 4 },
+        { id: "biz_fin_outcome_cleanup_fix", label: "Cleanup and fix", text: "Cleanup and fix", support: "You need corrective stabilization first.", riskPoints: 5 },
+      ],
+    },
+  ],
+  biz_need_technology_it_issues: [
+    {
+      id: "biz_it_type",
+      text: "What type of issue?",
+      helper: "Tech issue type helps us route to the right specialist set.",
+      options: [
+        { id: "biz_it_type_website", label: "Website problems", text: "Website problems", support: "Online presence is affected.", riskPoints: 5 },
+        { id: "biz_it_type_system", label: "System/software issues", text: "System/software issues", support: "Internal systems need troubleshooting.", riskPoints: 6 },
+        { id: "biz_it_type_cyber", label: "Cybersecurity concerns", text: "Cybersecurity concerns", support: "Security risk needs urgent visibility.", riskPoints: 7 },
+        { id: "biz_it_type_general", label: "General IT support", text: "General IT support", support: "You need reliable day-to-day IT help.", riskPoints: 4 },
+      ],
+    },
+    {
+      id: "biz_it_impact",
+      text: "How is it affecting you?",
+      helper: "Impact level helps determine urgency and support depth.",
+      options: [
+        { id: "biz_it_impact_customers", label: "Losing customers", text: "Losing customers", support: "Revenue risk is active.", riskPoints: 7 },
+        { id: "biz_it_impact_operations", label: "Slowing operations", text: "Slowing operations", support: "Productivity and delivery are impacted.", riskPoints: 6 },
+        { id: "biz_it_impact_security", label: "Security risk", text: "Security risk", support: "Potential exposure needs immediate attention.", riskPoints: 8 },
+        { id: "biz_it_impact_minor", label: "Minor inconvenience", text: "Minor inconvenience", support: "Issue exists but impact is limited.", riskPoints: 2 },
+      ],
+    },
+    {
+      id: "biz_it_need",
+      text: "What do you need?",
+      helper: "We’ll match based on whether you need urgent fix, continuity, or planning.",
+      options: [
+        { id: "biz_it_need_immediate_fix", label: "Immediate fix", text: "Immediate fix", support: "You need rapid intervention.", riskPoints: 8 },
+        { id: "biz_it_need_ongoing", label: "Ongoing support", text: "Ongoing support", support: "You need stable continuous support.", riskPoints: 5 },
+        { id: "biz_it_need_upgrade", label: "System upgrade", text: "System upgrade", support: "You want modernization and scalability.", riskPoints: 4 },
+        { id: "biz_it_need_advice", label: "Advice", text: "Advice", support: "You need direction before implementation.", riskPoints: 3 },
+      ],
+    },
+  ],
+  biz_need_marketing_getting_customers: [
+    {
+      id: "biz_marketing_need",
+      text: "What do you need help with?",
+      helper: "Marketing focus helps us route to the right growth specialist.",
+      options: [
+        { id: "biz_marketing_need_social", label: "Social media", text: "Social media", support: "You need stronger social execution.", riskPoints: 4 },
+        { id: "biz_marketing_need_ads", label: "Advertising", text: "Advertising", support: "Paid acquisition performance needs improvement.", riskPoints: 5 },
+        { id: "biz_marketing_need_branding", label: "Branding", text: "Branding", support: "You need stronger market positioning.", riskPoints: 4 },
+        { id: "biz_marketing_need_leads", label: "Lead generation", text: "Lead generation", support: "Pipeline growth is the top priority.", riskPoints: 6 },
+      ],
+    },
+    {
+      id: "biz_marketing_challenge",
+      text: "What’s your biggest challenge?",
+      helper: "Challenge mapping helps us prioritize immediate growth blockers.",
+      options: [
+        { id: "biz_marketing_challenge_leads", label: "Not enough leads", text: "Not enough leads", support: "Demand generation needs attention.", riskPoints: 7 },
+        { id: "biz_marketing_challenge_conversion", label: "Poor conversions", text: "Poor conversions", support: "Offer, funnel, or messaging needs optimization.", riskPoints: 6 },
+        { id: "biz_marketing_challenge_inconsistent", label: "Inconsistent marketing", text: "Inconsistent marketing", support: "Execution cadence is weak.", riskPoints: 5 },
+        { id: "biz_marketing_challenge_strategy", label: "No strategy", text: "No strategy", support: "You need a clear acquisition plan.", riskPoints: 6 },
+      ],
+    },
+    {
+      id: "biz_marketing_outcome",
+      text: "What do you want?",
+      helper: "This clarifies whether you want advice, execution, or coaching.",
+      options: [
+        { id: "biz_marketing_outcome_customers", label: "More customers", text: "More customers", support: "Customer growth is the direct objective.", riskPoints: 6 },
+        { id: "biz_marketing_outcome_plan", label: "Better marketing plan", text: "Better marketing plan", support: "You want strategic clarity first.", riskPoints: 4 },
+        { id: "biz_marketing_outcome_done_for_you", label: "Done-for-you service", text: "Done-for-you service", support: "You prefer execution by the expert team.", riskPoints: 6 },
+        { id: "biz_marketing_outcome_coaching", label: "Coaching", text: "Coaching", support: "You want guided support and capability building.", riskPoints: 3 },
+      ],
+    },
+  ],
+};
 
 const PERSONAL_PRIMARY_HELP_OPTIONS: QuizOption[] = [
   { id: "personal_need_career_job", label: "Career or job decisions", text: "Career or job decisions", support: "You need guidance on your next career move.", riskPoints: 4 },
@@ -352,30 +646,21 @@ function getHelpOptionsForAudience(audience?: AudienceSegment) {
   return BUSINESS_HELP_OPTIONS;
 }
 
-function getBusinessDiagnosticPrompts(selectedCategory: QuizCategory): QuizPrompt[] {
-  return [
-    {
-      id: BUSINESS_DIAGNOSTIC_PROMPT_IDS[0],
-      text: "What do you need help with right now?",
-      helper: "Pick the closest category so we can route you to the right expert type.",
-      category: selectedCategory,
-      options: BUSINESS_PRIMARY_HELP_OPTIONS,
-    },
-    {
-      id: BUSINESS_DIAGNOSTIC_PROMPT_IDS[1],
-      text: "What best describes your situation?",
-      helper: "This gives us context and urgency for smarter matching.",
-      category: selectedCategory,
-      options: BUSINESS_SITUATION_OPTIONS,
-    },
-    {
-      id: BUSINESS_DIAGNOSTIC_PROMPT_IDS[2],
-      text: "What are you trying to achieve?",
-      helper: "Your goal helps us prioritize the best expert fit.",
-      category: selectedCategory,
-      options: BUSINESS_GOAL_OPTIONS,
-    },
-  ];
+function getBusinessDiagnosticPrompts(selectedCategory: QuizCategory, selectedNeedId?: string): QuizPrompt[] {
+  const isKnownNeed = BUSINESS_PRIMARY_HELP_OPTIONS.some((option) => option.id === selectedNeedId);
+  const route = (isKnownNeed ? selectedNeedId : "biz_need_start_setup") as BusinessNeedRoute;
+  const followUpPrompts = BUSINESS_FOLLOW_UP_PROMPTS[route].map((prompt) => ({
+    ...prompt,
+    category: selectedCategory,
+  }));
+
+  return [{
+    id: BUSINESS_PRIMARY_PROMPT_ID,
+    text: "What do you need help with right now?",
+    helper: "Pick the closest category so we can route you to the right expert type.",
+    category: selectedCategory,
+    options: BUSINESS_PRIMARY_HELP_OPTIONS,
+  }, ...followUpPrompts];
 }
 
 function getPersonalDiagnosticPrompts(selectedCategory: QuizCategory): QuizPrompt[] {
@@ -419,7 +704,7 @@ function getBasePrompts(selectedCategory: QuizCategory, audience?: AudienceSegme
 function buildQuizPrompts(selectedRoutingId?: string, audience?: AudienceSegment): QuizPrompt[] {
   const selectedCategory = HELP_CATEGORY_MAP[selectedRoutingId ?? ""] ?? "General Support";
   if (audience === "business-owner") {
-    return getBusinessDiagnosticPrompts(selectedCategory);
+    return getBusinessDiagnosticPrompts(selectedCategory, selectedRoutingId);
   }
   if (audience === "personal-help") {
     return getPersonalDiagnosticPrompts(selectedCategory);
@@ -435,14 +720,13 @@ function deriveInitialAnswers(initialSituation: string | undefined, audience: Au
   }
 
   if (audience === "business-owner") {
-    if (BUSINESS_SITUATION_OPTIONS.some((option) => option.id === initialSituation)) {
-      return { business_situation: initialSituation };
-    }
-    if (initialSituation === "situation_business_help") {
-      return { business_primary_need: "biz_need_fix_problem" };
-    }
-    if (initialSituation === "situation_trust") {
-      return { business_situation: "situation_need_advice" };
+    if (initialSituation === "situation_start") return { [BUSINESS_PRIMARY_PROMPT_ID]: "biz_need_start_setup" };
+    if (initialSituation === "situation_business_help") return { [BUSINESS_PRIMARY_PROMPT_ID]: "biz_need_fix_problem" };
+    if (initialSituation === "situation_not_working") return { [BUSINESS_PRIMARY_PROMPT_ID]: "biz_need_fix_problem" };
+    if (initialSituation === "situation_failed") return { [BUSINESS_PRIMARY_PROMPT_ID]: "biz_need_fix_problem" };
+    if (initialSituation === "situation_urgent") return { [BUSINESS_PRIMARY_PROMPT_ID]: "biz_need_fix_problem" };
+    if (initialSituation === "situation_need_advice" || initialSituation === "situation_trust") {
+      return { [BUSINESS_PRIMARY_PROMPT_ID]: "biz_need_legal_compliance" };
     }
     return {} as Record<string, string>;
   }
@@ -534,6 +818,33 @@ function deriveLeadTier(
   return "standard";
 }
 
+function hasUrgentBusinessSignal(options: Array<QuizOption | undefined>) {
+  return options.some((option) => {
+    if (!option) return false;
+    const signalText = `${option.id} ${option.label} ${option.text}`.toLowerCase();
+    return signalText.includes("urgent") || signalText.includes("immediate") || signalText.includes("affecting business now");
+  });
+}
+
+function hasDoItForMeSignal(options: Array<QuizOption | undefined>) {
+  return options.some((option) => {
+    if (!option) return false;
+    const signalText = `${option.id} ${option.label} ${option.text}`.toLowerCase();
+    return signalText.includes("done-for-you") ||
+      signalText.includes("done for you") ||
+      signalText.includes("handle it") ||
+      signalText.includes("full setup done for me");
+  });
+}
+
+function hasGuidedExperienceSignal(options: Array<QuizOption | undefined>) {
+  return options.some((option) => {
+    if (!option) return false;
+    const signalText = `${option.id} ${option.label} ${option.text}`.toLowerCase();
+    return signalText.includes("not sure");
+  });
+}
+
 function buildPriorityActions(category: QuizCategory, answers: Record<string, string>): string[] {
   if (category === "Cybersecurity") {
     const actions: string[] = [];
@@ -561,10 +872,8 @@ function calculateAssessment(
   audience: AudienceSegment,
 ) {
   const includedPromptIds =
-    audience === "business-owner"
-      ? [...BUSINESS_DIAGNOSTIC_PROMPT_IDS]
-      : audience === "personal-help"
-        ? [...PERSONAL_DIAGNOSTIC_PROMPT_IDS]
+    audience === "business-owner" || audience === "personal-help"
+      ? prompts.map((prompt) => prompt.id)
       : selectedCategory === "Cybersecurity"
         ? prompts.map((prompt) => prompt.id)
         : ["situation_now", "problem_need", "urgency", "budget"];
@@ -590,7 +899,7 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   const currentAudience = selectedAudience ?? "business-owner";
   const initialAnswers = deriveInitialAnswers(initialSituation, currentAudience);
   const initialRoutingId = currentAudience === "business-owner"
-    ? initialAnswers.business_primary_need
+    ? initialAnswers[BUSINESS_PRIMARY_PROMPT_ID]
     : currentAudience === "personal-help"
       ? initialAnswers.personal_primary_need
       : initialAnswers.problem_need;
@@ -626,7 +935,7 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   }, []);
 
   const selectedRoutingId = currentAudience === "business-owner"
-    ? answers.business_primary_need
+    ? answers[BUSINESS_PRIMARY_PROMPT_ID]
     : currentAudience === "personal-help"
       ? answers.personal_primary_need
       : answers.problem_need;
@@ -678,9 +987,19 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
     : flowStep === "lead"
       ? "Step 2 of 3"
       : "Step 3 of 3";
-  const selectedBusinessCategory = getSelectedOption(BUSINESS_PRIMARY_HELP_OPTIONS, answers.business_primary_need);
-  const selectedBusinessSituation = getSelectedOption(BUSINESS_SITUATION_OPTIONS, answers.business_situation);
-  const selectedBusinessGoal = getSelectedOption(BUSINESS_GOAL_OPTIONS, answers.business_goal);
+  const selectedBusinessCategory = getSelectedOption(BUSINESS_PRIMARY_HELP_OPTIONS, answers[BUSINESS_PRIMARY_PROMPT_ID]);
+  const businessFollowUpOnePrompt = isBusinessAudience ? prompts[1] : undefined;
+  const businessFollowUpTwoPrompt = isBusinessAudience ? prompts[2] : undefined;
+  const businessFollowUpThreePrompt = isBusinessAudience ? prompts[3] : undefined;
+  const selectedBusinessFollowUpOne = businessFollowUpOnePrompt
+    ? getSelectedOption(businessFollowUpOnePrompt.options, answers[businessFollowUpOnePrompt.id])
+    : undefined;
+  const selectedBusinessFollowUpTwo = businessFollowUpTwoPrompt
+    ? getSelectedOption(businessFollowUpTwoPrompt.options, answers[businessFollowUpTwoPrompt.id])
+    : undefined;
+  const selectedBusinessFollowUpThree = businessFollowUpThreePrompt
+    ? getSelectedOption(businessFollowUpThreePrompt.options, answers[businessFollowUpThreePrompt.id])
+    : undefined;
   const selectedPersonalCategory = getSelectedOption(PERSONAL_PRIMARY_HELP_OPTIONS, answers.personal_primary_need);
   const selectedPersonalSituation = getSelectedOption(PERSONAL_SITUATION_OPTIONS, answers.personal_situation);
   const selectedPersonalGoal = getSelectedOption(PERSONAL_GOAL_OPTIONS, answers.personal_goal);
@@ -690,8 +1009,8 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   const selectedUrgency = getSelectedOption(URGENCY_OPTIONS, answers.urgency);
   const selectedBudget = getSelectedOption(BUDGET_OPTIONS, answers.budget);
   const selectedDiagnosticCategory = isBusinessAudience ? selectedBusinessCategory : selectedPersonalCategory;
-  const selectedDiagnosticSituation = isBusinessAudience ? selectedBusinessSituation : selectedPersonalSituation;
-  const selectedDiagnosticGoal = isBusinessAudience ? selectedBusinessGoal : selectedPersonalGoal;
+  const selectedDiagnosticSituation = isBusinessAudience ? selectedBusinessFollowUpOne : selectedPersonalSituation;
+  const selectedDiagnosticGoal = isBusinessAudience ? selectedBusinessFollowUpThree : selectedPersonalGoal;
   const isFirstQuestion = currentIndex <= 0;
 
   useEffect(() => {
@@ -769,22 +1088,38 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
 
   const handleLeadCaptureSubmit = (values: LeadCaptureFormValues) => {
     const submittedAt = new Date().toISOString();
-    const priorityActions = buildPriorityActions(selectedCategory, answers);
     const budgetPreference = selectedBudget?.text;
-    const selectedDiagnosticSituation = isBusinessAudience ? selectedBusinessSituation : selectedPersonalSituation;
-    const selectedDiagnosticCategory = isBusinessAudience ? selectedBusinessCategory : selectedPersonalCategory;
-    const selectedDiagnosticGoal = isBusinessAudience ? selectedBusinessGoal : selectedPersonalGoal;
-    const urgencyPreference = isDiagnosticAudience
-      ? selectedDiagnosticSituation?.id === "situation_urgent" || selectedDiagnosticSituation?.id === "personal_situation_urgent"
+    const businessSelectedOptions = [
+      selectedBusinessFollowUpOne,
+      selectedBusinessFollowUpTwo,
+      selectedBusinessFollowUpThree,
+    ];
+    const businessHasUrgentSignal = isBusinessAudience && hasUrgentBusinessSignal(businessSelectedOptions);
+    const businessHasDoItForMeSignal = isBusinessAudience && hasDoItForMeSignal(businessSelectedOptions);
+    const businessNeedsGuidedExperience = isBusinessAudience && hasGuidedExperienceSignal(businessSelectedOptions);
+    const urgencyPreference = isBusinessAudience
+      ? businessHasUrgentSignal
         ? "24-48 hours"
         : undefined
-      : selectedUrgency?.text;
-    const leadTier = deriveLeadTier(
+      : isPersonalAudience
+        ? selectedPersonalSituation?.id === "personal_situation_urgent"
+          ? "24-48 hours"
+          : undefined
+        : selectedUrgency?.text;
+    const basePriorityActions = buildPriorityActions(selectedCategory, answers);
+    const priorityActions = businessNeedsGuidedExperience
+      ? ["Needs guided experience: user selected at least one \"Not sure\" response.", ...basePriorityActions].slice(0, 3)
+      : basePriorityActions;
+    const derivedLeadTier = deriveLeadTier(
       assessment.normalizedScore,
       selectedCategory,
       urgencyPreference,
       budgetPreference,
     );
+    const highValueProblemLead = isBusinessAudience &&
+      selectedBusinessCategory?.id === "biz_need_fix_problem" &&
+      businessHasUrgentSignal;
+    const leadTier: LeadTier = highValueProblemLead || businessHasDoItForMeSignal ? "premium" : derivedLeadTier;
     const categoryBreakdown = [{
       category: selectedCategory,
       riskPoints: assessment.totalRiskPoints,
@@ -994,11 +1329,20 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                 <div className="mt-4 grid gap-3">
                   {selectedAudienceLabel ? <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Audience</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedAudienceLabel}</p></div> : null}
                   {isDiagnosticAudience ? (
-                    <>
-                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Category</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedDiagnosticCategory?.text || "Not selected yet"}</p></div>
-                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Situation</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedDiagnosticSituation?.text || "Not selected yet"}</p></div>
-                      <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Goal</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedDiagnosticGoal?.text || "Not selected yet"}</p></div>
-                    </>
+                    isBusinessAudience ? (
+                      <>
+                        <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Category</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedBusinessCategory?.text || "Not selected yet"}</p></div>
+                        <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs text-[#7B89A2]">{businessFollowUpOnePrompt?.text || "Question 1"}</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedBusinessFollowUpOne?.text || "Not selected yet"}</p></div>
+                        <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs text-[#7B89A2]">{businessFollowUpTwoPrompt?.text || "Question 2"}</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedBusinessFollowUpTwo?.text || "Not selected yet"}</p></div>
+                        <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs text-[#7B89A2]">{businessFollowUpThreePrompt?.text || "Question 3"}</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedBusinessFollowUpThree?.text || "Not selected yet"}</p></div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Category</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedDiagnosticCategory?.text || "Not selected yet"}</p></div>
+                        <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Situation</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedDiagnosticSituation?.text || "Not selected yet"}</p></div>
+                        <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Goal</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedDiagnosticGoal?.text || "Not selected yet"}</p></div>
+                      </>
+                    )
                   ) : (
                     <>
                       <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Situation</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedLegacySituation?.text || "Not selected yet"}</p></div>
@@ -1015,7 +1359,7 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                 <div className="mt-4 space-y-3">
                   <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">Takes 60 seconds · No commitment · Instant results.</p></div>
                   <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">Not sure about an answer? Choose the closest option — the system is designed to guide you even if you’re unsure.</p></div>
-                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">{isDiagnosticAudience ? "Category, situation, and goal help us match you with the right expert faster." : "Budget, urgency, and location help us rank the right experts faster."}</p></div>
+                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">{isBusinessAudience ? "Category plus your three business follow-up answers drive smarter expert matching." : isPersonalAudience ? "Category, situation, and goal help us match you with the right expert faster." : "Budget, urgency, and location help us rank the right experts faster."}</p></div>
                 </div>
               </div>
             </aside>
@@ -1036,12 +1380,21 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                       isDiagnosticAudience
                         ? { label: "Category", value: selectedDiagnosticCategory?.label || "—" }
                         : { label: "Help needed", value: selectedLegacyHelp?.label || "—" },
-                      isDiagnosticAudience
-                        ? { label: "Situation", value: selectedDiagnosticSituation?.label || "—" }
-                        : { label: "Urgency", value: selectedUrgency?.label || "—" },
-                      isDiagnosticAudience
-                        ? { label: "Goal", value: selectedDiagnosticGoal?.label || "—" }
-                        : { label: "Budget", value: selectedBudget?.label || "—" },
+                      ...(isBusinessAudience
+                        ? [
+                          { label: businessFollowUpOnePrompt?.text || "Question 1", value: selectedBusinessFollowUpOne?.label || "—" },
+                          { label: businessFollowUpTwoPrompt?.text || "Question 2", value: selectedBusinessFollowUpTwo?.label || "—" },
+                          { label: businessFollowUpThreePrompt?.text || "Question 3", value: selectedBusinessFollowUpThree?.label || "—" },
+                        ]
+                        : isDiagnosticAudience
+                          ? [
+                            { label: "Situation", value: selectedDiagnosticSituation?.label || "—" },
+                            { label: "Goal", value: selectedDiagnosticGoal?.label || "—" },
+                          ]
+                          : [
+                            { label: "Urgency", value: selectedUrgency?.label || "—" },
+                            { label: "Budget", value: selectedBudget?.label || "—" },
+                          ]),
                       { label: "Priority", value: selectedCategory },
                     ].filter((item): item is { label: string; value: string } => Boolean(item)).map((item) => (
                       <div key={item.label} className="flex items-center justify-between py-2.5">

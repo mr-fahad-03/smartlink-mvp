@@ -151,6 +151,18 @@ function getPersonalizedMatchMessage(submission: AssessmentSubmission, highestRi
   return `Based on your urgency (${urgency}) and budget (${budget}), we prioritized fast-response experts with strong alignment to ${highestRiskCategory}.`;
 }
 
+function getRecommendedExpertType(category: AssessmentSubmission["highestRiskCategory"]) {
+  if (category === "Operations") return "Operations Consultant";
+  if (category === "Cybersecurity") return "Cybersecurity Specialist";
+  if (category === "Systems") return "Systems / IT Specialist";
+  if (category === "Growth") return "Growth & Marketing Advisor";
+  if (category === "Career Help") return "Career Coach";
+  if (category === "Financial Advice") return "Financial Advisor / Accountant";
+  if (category === "Legal Help") return "Legal Advisor";
+  if (category === "Personal Tech Support") return "Personal IT Support Specialist";
+  return "Guidance Specialist";
+}
+
 const missingReasonOptions: { value: MissingFeedbackReason; label: string }[] = [
   { value: "budget", label: "Budget" },
   { value: "relevance", label: "Relevance" },
@@ -255,6 +267,7 @@ export default function ResultsPage() {
   const scoreLabel = isBusinessAudience ? "Risk Score" : "Situation Summary";
   const attentionLabel = isBusinessAudience ? "High Risk" : "What Needs Attention";
   const personalizedMatchMessage = getPersonalizedMatchMessage(submission, highestRisk.category);
+  const recommendedExpertType = getRecommendedExpertType(highestRisk.category);
   const personaCards = assessmentMode === "cybersecurity-risk"
     ? [
         { label: "Cybersecurity Persona", profile: cyberPersona },
@@ -339,14 +352,25 @@ export default function ResultsPage() {
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
+              <Button asChild variant="outline" size="lg" className="h-11 rounded-xl border-[#D9E3F3] bg-white text-[#111827] hover:bg-[#F7FAFF]">
+                <Link href="/expert-match?action=chat">Chat First</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="h-11 rounded-xl border-[#D9E3F3] bg-white text-[#111827] hover:bg-[#F7FAFF]">
+                <Link href="/expert-match?action=book">Book a Consultation</Link>
+              </Button>
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+          <div className="mt-6 grid gap-4 lg:grid-cols-4">
             <div className="rounded-2xl border border-[#D9E3F3] bg-white p-5">
               <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Primary Issue</p>
               <p className="mt-2 text-xl font-semibold text-[#111827]">{highestRisk.category}</p>
               <p className="mt-2 text-sm leading-6 text-[#5D6B85]">This is the area creating the strongest pressure right now.</p>
+            </div>
+            <div className="rounded-2xl border border-[#D9E3F3] bg-white p-5">
+              <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Recommended Expert Type</p>
+              <p className="mt-2 text-xl font-semibold text-[#111827]">{recommendedExpertType}</p>
+              <p className="mt-2 text-sm leading-6 text-[#5D6B85]">This is the best-fit support profile based on your answers.</p>
             </div>
             <div className="rounded-2xl border border-[#D9E3F3] bg-white p-5">
               <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Recommended Action</p>

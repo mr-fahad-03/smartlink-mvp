@@ -180,13 +180,18 @@ interface BusinessFollowUpPromptTemplate {
   options: QuizOption[];
 }
 
-const PERSONAL_DIAGNOSTIC_PROMPT_IDS = [
-  "personal_primary_need",
-  "personal_situation",
-  "personal_goal",
-] as const;
-
 const BUSINESS_PRIMARY_PROMPT_ID = "business_primary_need";
+const PERSONAL_PRIMARY_PROMPT_ID = "personal_primary_need";
+
+type PersonalNeedRoute =
+  | "personal_need_career_job"
+  | "personal_need_money_budget_debt"
+  | "personal_need_legal_personal_matters"
+  | "personal_need_technology_it_help"
+  | "personal_need_business_side_hustle"
+  | "personal_need_education_learning"
+  | "personal_need_guidance_life_decisions"
+  | "personal_need_not_sure";
 
 const BUSINESS_PRIMARY_HELP_OPTIONS: QuizOption[] = [
   { id: "biz_need_start_setup", label: "Starting or setting up a business", text: "Starting or setting up a business", support: "You need structure, requirements, and the right launch path.", riskPoints: 5 },
@@ -507,21 +512,288 @@ const PERSONAL_PRIMARY_HELP_OPTIONS: QuizOption[] = [
   { id: "personal_need_not_sure", label: "Something else / not sure", text: "Something else / not sure", support: "You need clarity before choosing the right support path.", riskPoints: 4 },
 ];
 
-const PERSONAL_SITUATION_OPTIONS: QuizOption[] = [
-  { id: "personal_situation_start", label: "I don't know where to start", text: "I don't know where to start", support: "You need a simple first step.", riskPoints: 4 },
-  { id: "personal_situation_stuck", label: "I'm feeling stuck", text: "I'm feeling stuck", support: "You need help breaking through a blocker.", riskPoints: 5 },
-  { id: "personal_situation_need_advice", label: "I need advice before making a decision", text: "I need advice before making a decision", support: "You want confidence before moving forward.", riskPoints: 4 },
-  { id: "personal_situation_failed", label: "I tried before but it didn't work", text: "I tried before but it didn't work", support: "A previous attempt did not solve the issue.", riskPoints: 6 },
-  { id: "personal_situation_urgent", label: "I need help urgently", text: "I need help urgently", support: "You need immediate support.", riskPoints: 8 },
-];
-
-const PERSONAL_GOAL_OPTIONS: QuizOption[] = [
-  { id: "personal_goal_clarity_direction", label: "Get clarity and direction", text: "Get clarity and direction", support: "You want a clearer path forward.", riskPoints: 3 },
-  { id: "personal_goal_solve_problem", label: "Solve a specific problem", text: "Solve a specific problem", support: "You want a direct fix to a clear issue.", riskPoints: 5 },
-  { id: "personal_goal_right_decision", label: "Make the right decision", text: "Make the right decision", support: "You want confidence in your next choice.", riskPoints: 3 },
-  { id: "personal_goal_save_time", label: "Save time and avoid mistakes", text: "Save time and avoid mistakes", support: "You want a smarter and faster approach.", riskPoints: 3 },
-  { id: "personal_goal_improve_situation", label: "Improve my situation", text: "Improve my situation", support: "You want practical progress in your current situation.", riskPoints: 4 },
-];
+const PERSONAL_FOLLOW_UP_PROMPTS: Record<PersonalNeedRoute, [BusinessFollowUpPromptTemplate, BusinessFollowUpPromptTemplate, BusinessFollowUpPromptTemplate]> = {
+  personal_need_career_job: [
+    {
+      id: "personal_career_situation",
+      text: "What best describes your situation?",
+      helper: "This helps us understand where you are in your career journey.",
+      options: [
+        { id: "personal_career_situation_new_job", label: "Looking for a new job", text: "Looking for a new job", support: "You are actively pursuing a role change.", riskPoints: 4 },
+        { id: "personal_career_situation_switch", label: "Want to switch careers", text: "Want to switch careers", support: "You need clarity on a career transition.", riskPoints: 5 },
+        { id: "personal_career_situation_unhappy", label: "Not happy in current role", text: "Not happy in current role", support: "Current role fit is low and needs action.", riskPoints: 5 },
+        { id: "personal_career_situation_starting", label: "Just starting my career", text: "Just starting my career", support: "You need an early-stage strategy and guidance.", riskPoints: 3 },
+      ],
+    },
+    {
+      id: "personal_career_challenge",
+      text: "What's your biggest challenge?",
+      helper: "We'll focus your match around this blocker first.",
+      options: [
+        { id: "personal_career_challenge_interviews", label: "Not getting interviews", text: "Not getting interviews", support: "You need stronger positioning and applications.", riskPoints: 6 },
+        { id: "personal_career_challenge_direction", label: "Not sure what direction to take", text: "Not sure what direction to take", support: "You need guided direction before applying broadly.", riskPoints: 5 },
+        { id: "personal_career_challenge_resume", label: "Need to improve my resume", text: "Need to improve my resume", support: "Your profile needs clearer market fit.", riskPoints: 4 },
+        { id: "personal_career_challenge_confidence", label: "Lack of confidence", text: "Lack of confidence", support: "You need structure and confidence-building support.", riskPoints: 4 },
+      ],
+    },
+    {
+      id: "personal_career_need",
+      text: "What do you need help with?",
+      helper: "Choose the support format that feels most useful now.",
+      options: [
+        { id: "personal_career_need_resume", label: "Resume / CV help", text: "Resume / CV help", support: "Focused support on profile quality.", riskPoints: 3 },
+        { id: "personal_career_need_advice", label: "Career advice", text: "Career advice", support: "Guidance-first support for decision clarity.", riskPoints: 3 },
+        { id: "personal_career_need_interview", label: "Interview preparation", text: "Interview preparation", support: "You need confidence and structure before interviews.", riskPoints: 4 },
+        { id: "personal_career_need_strategy", label: "Job search strategy", text: "Job search strategy", support: "You need a practical roadmap and targeting plan.", riskPoints: 4 },
+      ],
+    },
+  ],
+  personal_need_money_budget_debt: [
+    {
+      id: "personal_money_dealing",
+      text: "What are you dealing with?",
+      helper: "This helps us identify the right finance support path.",
+      options: [
+        { id: "personal_money_dealing_manage", label: "Struggling to manage money", text: "Struggling to manage money", support: "Money management basics need attention.", riskPoints: 5 },
+        { id: "personal_money_dealing_debt", label: "In debt", text: "In debt", support: "Debt pressure requires targeted guidance.", riskPoints: 7 },
+        { id: "personal_money_dealing_save", label: "Want to save more", text: "Want to save more", support: "You need practical saving structure.", riskPoints: 3 },
+        { id: "personal_money_dealing_invest", label: "Want to invest", text: "Want to invest", support: "You need confident next steps for growth decisions.", riskPoints: 3 },
+      ],
+    },
+    {
+      id: "personal_money_issue",
+      text: "What's the biggest issue?",
+      helper: "We'll prioritize this first in your action path.",
+      options: [
+        { id: "personal_money_issue_spending", label: "Spending too much", text: "Spending too much", support: "Spending controls and habits need structure.", riskPoints: 5 },
+        { id: "personal_money_issue_income", label: "Not enough income", text: "Not enough income", support: "Income pressure is limiting your options.", riskPoints: 6 },
+        { id: "personal_money_issue_budget", label: "No clear budget", text: "No clear budget", support: "A budgeting framework is missing.", riskPoints: 4 },
+        { id: "personal_money_issue_overwhelmed", label: "Overwhelmed", text: "Overwhelmed", support: "You need simple decisions and guided support.", riskPoints: 5 },
+      ],
+    },
+    {
+      id: "personal_money_need",
+      text: "What do you want?",
+      helper: "Pick the format that matches how you want help delivered.",
+      options: [
+        { id: "personal_money_need_plan", label: "A simple plan", text: "A simple plan", support: "You want clear and practical next steps.", riskPoints: 3 },
+        { id: "personal_money_need_guide", label: "Someone to guide me", text: "Someone to guide me", support: "You want guided accountability and support.", riskPoints: 4 },
+        { id: "personal_money_need_tools", label: "Tools/templates", text: "Tools/templates", support: "You prefer lightweight self-serve support.", riskPoints: 2 },
+        { id: "personal_money_need_fix", label: "Help fixing my situation", text: "Help fixing my situation", support: "You need corrective, hands-on support.", riskPoints: 6 },
+      ],
+    },
+  ],
+  personal_need_legal_personal_matters: [
+    {
+      id: "personal_legal_type",
+      text: "What type of help do you need?",
+      helper: "This lets us route to the right legal support lane.",
+      options: [
+        { id: "personal_legal_type_contracts", label: "Contracts or agreements", text: "Contracts or agreements", support: "You need clear legal documentation support.", riskPoints: 4 },
+        { id: "personal_legal_type_dispute", label: "Dispute or issue with someone", text: "Dispute or issue with someone", support: "A conflict needs guidance and action.", riskPoints: 6 },
+        { id: "personal_legal_type_advice", label: "Personal legal advice", text: "Personal legal advice", support: "You need legal clarity before deciding.", riskPoints: 5 },
+        { id: "personal_legal_type_not_sure", label: "Not sure", text: "Not sure", support: "You need guided triage to identify the right legal next step.", riskPoints: 4 },
+      ],
+    },
+    {
+      id: "personal_legal_situation",
+      text: "What's your situation?",
+      helper: "Urgency and context improve response quality.",
+      options: [
+        { id: "personal_legal_situation_preventive", label: "Preventive (just checking)", text: "Preventive (just checking)", support: "You want to avoid future issues.", riskPoints: 3 },
+        { id: "personal_legal_situation_issue", label: "Already have an issue", text: "Already have an issue", support: "A current matter needs active support.", riskPoints: 6 },
+        { id: "personal_legal_situation_urgent", label: "Urgent situation", text: "Urgent situation", support: "You need immediate legal guidance.", riskPoints: 8 },
+      ],
+    },
+    {
+      id: "personal_legal_need",
+      text: "What do you want?",
+      helper: "Choose whether you need guidance, prep, or full handling.",
+      options: [
+        { id: "personal_legal_need_advice", label: "Advice", text: "Advice", support: "Guidance-first support.", riskPoints: 3 },
+        { id: "personal_legal_need_docs", label: "Document preparation", text: "Document preparation", support: "You need legally sound document support.", riskPoints: 4 },
+        { id: "personal_legal_need_handle", label: "Someone to handle it", text: "Someone to handle it", support: "You want full-service support.", riskPoints: 6 },
+        { id: "personal_legal_need_direction", label: "Direction on next steps", text: "Direction on next steps", support: "You need clear legal direction before acting.", riskPoints: 4 },
+      ],
+    },
+  ],
+  personal_need_technology_it_help: [
+    {
+      id: "personal_tech_issue",
+      text: "What's the issue?",
+      helper: "Issue type helps us route quickly.",
+      options: [
+        { id: "personal_tech_issue_device", label: "Device not working", text: "Device not working", support: "Your device needs troubleshooting.", riskPoints: 5 },
+        { id: "personal_tech_issue_internet", label: "Internet/network issues", text: "Internet/network issues", support: "Connectivity issues are interrupting your flow.", riskPoints: 5 },
+        { id: "personal_tech_issue_software", label: "Software/app problems", text: "Software/app problems", support: "App reliability or setup needs support.", riskPoints: 4 },
+        { id: "personal_tech_issue_security", label: "Security concerns", text: "Security concerns", support: "Potential risk needs immediate clarity.", riskPoints: 7 },
+      ],
+    },
+    {
+      id: "personal_tech_impact",
+      text: "How is it affecting you?",
+      helper: "Impact level helps prioritize urgency.",
+      options: [
+        { id: "personal_tech_impact_cant_work", label: "Can't work", text: "Can't work", support: "This is blocking key daily tasks.", riskPoints: 8 },
+        { id: "personal_tech_impact_slowing", label: "Slowing me down", text: "Slowing me down", support: "Performance is affected and needs improvement.", riskPoints: 5 },
+        { id: "personal_tech_impact_annoying", label: "Just annoying", text: "Just annoying", support: "Impact is low but still worth fixing.", riskPoints: 2 },
+        { id: "personal_tech_impact_safety", label: "Concerned about safety", text: "Concerned about safety", support: "Security confidence is a priority.", riskPoints: 7 },
+      ],
+    },
+    {
+      id: "personal_tech_need",
+      text: "What do you need?",
+      helper: "Choose the support style that fits your situation.",
+      options: [
+        { id: "personal_tech_need_fix", label: "Fix the issue", text: "Fix the issue", support: "You need a direct resolution.", riskPoints: 6 },
+        { id: "personal_tech_need_ongoing", label: "Ongoing support", text: "Ongoing support", support: "You want continuity and prevention.", riskPoints: 5 },
+        { id: "personal_tech_need_advice", label: "Advice", text: "Advice", support: "You need guidance before action.", riskPoints: 3 },
+        { id: "personal_tech_need_setup", label: "Setup help", text: "Setup help", support: "You need configuration and onboarding support.", riskPoints: 4 },
+      ],
+    },
+  ],
+  personal_need_business_side_hustle: [
+    {
+      id: "personal_hustle_stage",
+      text: "Where are you right now?",
+      helper: "Your stage helps us choose practical next steps.",
+      options: [
+        { id: "personal_hustle_stage_idea", label: "Just an idea", text: "Just an idea", support: "You are at idea stage and need structure.", riskPoints: 4 },
+        { id: "personal_hustle_stage_planning", label: "Planning", text: "Planning", support: "You are validating and preparing.", riskPoints: 4 },
+        { id: "personal_hustle_stage_ready", label: "Ready to start", text: "Ready to start", support: "You need launch-level support.", riskPoints: 6 },
+        { id: "personal_hustle_stage_started", label: "Already started", text: "Already started", support: "You need optimization and direction.", riskPoints: 5 },
+      ],
+    },
+    {
+      id: "personal_hustle_challenge",
+      text: "What's your biggest challenge?",
+      helper: "We use this to focus your expert match.",
+      options: [
+        { id: "personal_hustle_challenge_start", label: "Don't know where to start", text: "Don't know where to start", support: "You need a clear first roadmap.", riskPoints: 5 },
+        { id: "personal_hustle_challenge_fear", label: "Fear of failure", text: "Fear of failure", support: "You need confidence and structure.", riskPoints: 4 },
+        { id: "personal_hustle_challenge_money", label: "Not enough money", text: "Not enough money", support: "Resource constraints are limiting progress.", riskPoints: 6 },
+        { id: "personal_hustle_challenge_guidance", label: "Need guidance", text: "Need guidance", support: "You need an experienced guide.", riskPoints: 4 },
+      ],
+    },
+    {
+      id: "personal_hustle_need",
+      text: "What do you want?",
+      helper: "Choose the support format that best fits your pace.",
+      options: [
+        { id: "personal_hustle_need_step", label: "Step-by-step help", text: "Step-by-step help", support: "You want structured implementation support.", riskPoints: 4 },
+        { id: "personal_hustle_need_advice", label: "Business advice", text: "Business advice", support: "You need strategic direction before executing.", riskPoints: 4 },
+        { id: "personal_hustle_need_setup", label: "Setup support", text: "Setup support", support: "You need practical setup execution.", riskPoints: 5 },
+        { id: "personal_hustle_need_guide", label: "Someone to guide me", text: "Someone to guide me", support: "You want guided accountability and support.", riskPoints: 4 },
+      ],
+    },
+  ],
+  personal_need_education_learning: [
+    {
+      id: "personal_learning_focus",
+      text: "What are you focused on?",
+      helper: "We'll match your support to your learning context.",
+      options: [
+        { id: "personal_learning_focus_school", label: "School/college", text: "School/college", support: "You need support tied to academics.", riskPoints: 3 },
+        { id: "personal_learning_focus_skill", label: "Learning a new skill", text: "Learning a new skill", support: "You need a focused skill-growth path.", riskPoints: 3 },
+        { id: "personal_learning_focus_professional", label: "Professional development", text: "Professional development", support: "You need growth aligned with your career goals.", riskPoints: 3 },
+        { id: "personal_learning_focus_cert", label: "Certification", text: "Certification", support: "You need structure for exam and prep readiness.", riskPoints: 4 },
+      ],
+    },
+    {
+      id: "personal_learning_challenge",
+      text: "What's the challenge?",
+      helper: "This helps us prioritize the most practical support mode.",
+      options: [
+        { id: "personal_learning_challenge_consistent", label: "Hard to stay consistent", text: "Hard to stay consistent", support: "You need accountability and a routine.", riskPoints: 4 },
+        { id: "personal_learning_challenge_material", label: "Don't understand material", text: "Don't understand material", support: "You need targeted explanation and coaching.", riskPoints: 5 },
+        { id: "personal_learning_challenge_not_sure", label: "Not sure what to learn", text: "Not sure what to learn", support: "You need guidance before committing effort.", riskPoints: 4 },
+        { id: "personal_learning_challenge_time", label: "Time management", text: "Time management", support: "You need a practical schedule and pacing.", riskPoints: 4 },
+      ],
+    },
+    {
+      id: "personal_learning_need",
+      text: "What do you want?",
+      helper: "Pick the format that best supports your learning style.",
+      options: [
+        { id: "personal_learning_need_plan", label: "Study plan", text: "Study plan", support: "You want clear milestones and pacing.", riskPoints: 3 },
+        { id: "personal_learning_need_coaching", label: "Coaching/tutoring", text: "Coaching/tutoring", support: "You need direct instructional support.", riskPoints: 4 },
+        { id: "personal_learning_need_guidance", label: "Guidance", text: "Guidance", support: "You want decision support and direction.", riskPoints: 3 },
+        { id: "personal_learning_need_resources", label: "Resources", text: "Resources", support: "You prefer practical self-serve tools.", riskPoints: 2 },
+      ],
+    },
+  ],
+  personal_need_guidance_life_decisions: [
+    {
+      id: "personal_guidance_dealing",
+      text: "What are you dealing with?",
+      helper: "We'll use this to shape your support track.",
+      options: [
+        { id: "personal_guidance_dealing_stuck", label: "Feeling stuck", text: "Feeling stuck", support: "You need momentum and clarity.", riskPoints: 5 },
+        { id: "personal_guidance_dealing_major_decision", label: "Major life decision", text: "Major life decision", support: "You need confident decision support.", riskPoints: 6 },
+        { id: "personal_guidance_dealing_direction", label: "Lack of direction", text: "Lack of direction", support: "You need structure and priorities.", riskPoints: 5 },
+        { id: "personal_guidance_dealing_growth", label: "Personal growth", text: "Personal growth", support: "You want intentional progress and reflection.", riskPoints: 3 },
+      ],
+    },
+    {
+      id: "personal_guidance_challenge",
+      text: "What's the biggest challenge?",
+      helper: "We'll prioritize this blocker first.",
+      options: [
+        { id: "personal_guidance_challenge_overthinking", label: "Overthinking", text: "Overthinking", support: "You need decision structure and focus.", riskPoints: 4 },
+        { id: "personal_guidance_challenge_fear", label: "Fear of making the wrong choice", text: "Fear of making the wrong choice", support: "You need confidence and risk clarity.", riskPoints: 6 },
+        { id: "personal_guidance_challenge_clarity", label: "No clarity", text: "No clarity", support: "You need practical direction quickly.", riskPoints: 5 },
+        { id: "personal_guidance_challenge_motivation", label: "Low motivation", text: "Low motivation", support: "You need accountability and sustainable momentum.", riskPoints: 4 },
+      ],
+    },
+    {
+      id: "personal_guidance_need",
+      text: "What do you want?",
+      helper: "Choose what would help you move forward fastest.",
+      options: [
+        { id: "personal_guidance_need_clarity", label: "Clarity", text: "Clarity", support: "You want a clear understanding before acting.", riskPoints: 3 },
+        { id: "personal_guidance_need_advice", label: "Advice", text: "Advice", support: "You want guided thinking and support.", riskPoints: 3 },
+        { id: "personal_guidance_need_talk", label: "Someone to talk to", text: "Someone to talk to", support: "You want supportive human guidance.", riskPoints: 4 },
+        { id: "personal_guidance_need_plan", label: "A plan forward", text: "A plan forward", support: "You want practical next steps and structure.", riskPoints: 4 },
+      ],
+    },
+  ],
+  personal_need_not_sure: [
+    {
+      id: "personal_unsure_closest",
+      text: "What feels closest to your situation?",
+      helper: "This safety-net step helps us route you without guesswork.",
+      options: [
+        { id: "personal_unsure_closest_work", label: "Work or career", text: "Work or career", support: "Career-related support seems closest.", riskPoints: 4 },
+        { id: "personal_unsure_closest_money", label: "Money", text: "Money", support: "Financial support seems most relevant.", riskPoints: 5 },
+        { id: "personal_unsure_closest_life", label: "Personal/life decisions", text: "Personal/life decisions", support: "Life guidance appears most relevant.", riskPoints: 5 },
+        { id: "personal_unsure_closest_tech", label: "Tech issues", text: "Tech issues", support: "Technology support appears most relevant.", riskPoints: 4 },
+        { id: "personal_unsure_closest_other", label: "Something else", text: "Something else", support: "You need broad support and triage.", riskPoints: 4 },
+      ],
+    },
+    {
+      id: "personal_unsure_feeling",
+      text: "How are you feeling about it?",
+      helper: "This helps us set urgency and support style.",
+      options: [
+        { id: "personal_unsure_feeling_stressed", label: "Stressed", text: "Stressed", support: "You need calmer, structured support.", riskPoints: 6 },
+        { id: "personal_unsure_feeling_confused", label: "Confused", text: "Confused", support: "You need clarity before committing.", riskPoints: 5 },
+        { id: "personal_unsure_feeling_exploring", label: "Just exploring", text: "Just exploring", support: "You are still evaluating options.", riskPoints: 2 },
+        { id: "personal_unsure_feeling_urgent", label: "Need help urgently", text: "Need help urgently", support: "You need fast response support.", riskPoints: 8 },
+      ],
+    },
+    {
+      id: "personal_unsure_need",
+      text: "What would help most right now?",
+      helper: "We'll use this to choose the first support step.",
+      options: [
+        { id: "personal_unsure_need_direction", label: "Clear direction", text: "Clear direction", support: "You need a simple plan and priorities.", riskPoints: 4 },
+        { id: "personal_unsure_need_guide", label: "Someone to guide me", text: "Someone to guide me", support: "You need guided support and accountability.", riskPoints: 4 },
+        { id: "personal_unsure_need_answers", label: "Quick answers", text: "Quick answers", support: "You need fast clarity and triage.", riskPoints: 3 },
+        { id: "personal_unsure_need_not_sure", label: "Not sure", text: "Not sure", support: "Guided AI-first routing is likely best.", riskPoints: 4 },
+      ],
+    },
+  ],
+};
 
 const SITUATION_OPTIONS: QuizOption[] = [
   { id: "situation_stuck", label: "My application is stuck", text: "My application is stuck", support: "You started, but progress has slowed or stalled.", riskPoints: 6 },
@@ -663,30 +935,21 @@ function getBusinessDiagnosticPrompts(selectedCategory: QuizCategory, selectedNe
   }, ...followUpPrompts];
 }
 
-function getPersonalDiagnosticPrompts(selectedCategory: QuizCategory): QuizPrompt[] {
-  return [
-    {
-      id: PERSONAL_DIAGNOSTIC_PROMPT_IDS[0],
-      text: "What do you need help with today?",
-      helper: "Pick the option that feels closest to what you are dealing with.",
-      category: selectedCategory,
-      options: PERSONAL_PRIMARY_HELP_OPTIONS,
-    },
-    {
-      id: PERSONAL_DIAGNOSTIC_PROMPT_IDS[1],
-      text: "What best describes your situation?",
-      helper: "This helps us understand your context and urgency.",
-      category: selectedCategory,
-      options: PERSONAL_SITUATION_OPTIONS,
-    },
-    {
-      id: PERSONAL_DIAGNOSTIC_PROMPT_IDS[2],
-      text: "What are you trying to achieve?",
-      helper: "Your goal helps us match you to the right support faster.",
-      category: selectedCategory,
-      options: PERSONAL_GOAL_OPTIONS,
-    },
-  ];
+function getPersonalDiagnosticPrompts(selectedCategory: QuizCategory, selectedNeedId?: string): QuizPrompt[] {
+  const isKnownNeed = PERSONAL_PRIMARY_HELP_OPTIONS.some((option) => option.id === selectedNeedId);
+  const route = (isKnownNeed ? selectedNeedId : "personal_need_not_sure") as PersonalNeedRoute;
+  const followUpPrompts = PERSONAL_FOLLOW_UP_PROMPTS[route].map((prompt) => ({
+    ...prompt,
+    category: selectedCategory,
+  }));
+
+  return [{
+    id: PERSONAL_PRIMARY_PROMPT_ID,
+    text: "What do you need help with right now?",
+    helper: "Pick the option that feels closest to what you are dealing with.",
+    category: selectedCategory,
+    options: PERSONAL_PRIMARY_HELP_OPTIONS,
+  }, ...followUpPrompts];
 }
 
 function getBasePrompts(selectedCategory: QuizCategory, audience?: AudienceSegment): QuizPrompt[] {
@@ -707,7 +970,7 @@ function buildQuizPrompts(selectedRoutingId?: string, audience?: AudienceSegment
     return getBusinessDiagnosticPrompts(selectedCategory, selectedRoutingId);
   }
   if (audience === "personal-help") {
-    return getPersonalDiagnosticPrompts(selectedCategory);
+    return getPersonalDiagnosticPrompts(selectedCategory, selectedRoutingId);
   }
   const basePrompts = getBasePrompts(selectedCategory, audience);
   if (selectedRoutingId !== "need_cybersecurity") return basePrompts;
@@ -732,21 +995,14 @@ function deriveInitialAnswers(initialSituation: string | undefined, audience: Au
   }
 
   if (audience === "personal-help") {
-    if (initialSituation === "situation_start") {
-      return { personal_situation: "personal_situation_start" };
-    }
-    if (initialSituation === "situation_not_working") {
-      return { personal_situation: "personal_situation_stuck" };
-    }
+    if (initialSituation === "situation_start") return { [PERSONAL_PRIMARY_PROMPT_ID]: "personal_need_not_sure" };
+    if (initialSituation === "situation_stuck") return { [PERSONAL_PRIMARY_PROMPT_ID]: "personal_need_guidance_life_decisions" };
+    if (initialSituation === "situation_not_working") return { [PERSONAL_PRIMARY_PROMPT_ID]: "personal_need_guidance_life_decisions" };
     if (initialSituation === "situation_need_advice" || initialSituation === "situation_trust") {
-      return { personal_situation: "personal_situation_need_advice" };
+      return { [PERSONAL_PRIMARY_PROMPT_ID]: "personal_need_guidance_life_decisions" };
     }
-    if (initialSituation === "situation_failed") {
-      return { personal_situation: "personal_situation_failed" };
-    }
-    if (initialSituation === "situation_urgent") {
-      return { personal_situation: "personal_situation_urgent" };
-    }
+    if (initialSituation === "situation_failed") return { [PERSONAL_PRIMARY_PROMPT_ID]: "personal_need_not_sure" };
+    if (initialSituation === "situation_urgent") return { [PERSONAL_PRIMARY_PROMPT_ID]: "personal_need_not_sure" };
     return {} as Record<string, string>;
   }
 
@@ -818,7 +1074,7 @@ function deriveLeadTier(
   return "standard";
 }
 
-function hasUrgentBusinessSignal(options: Array<QuizOption | undefined>) {
+function hasUrgentSignal(options: Array<QuizOption | undefined>) {
   return options.some((option) => {
     if (!option) return false;
     const signalText = `${option.id} ${option.label} ${option.text}`.toLowerCase();
@@ -826,12 +1082,13 @@ function hasUrgentBusinessSignal(options: Array<QuizOption | undefined>) {
   });
 }
 
-function hasDoItForMeSignal(options: Array<QuizOption | undefined>) {
+function hasPremiumServiceSignal(options: Array<QuizOption | undefined>) {
   return options.some((option) => {
     if (!option) return false;
     const signalText = `${option.id} ${option.label} ${option.text}`.toLowerCase();
     return signalText.includes("done-for-you") ||
       signalText.includes("done for you") ||
+      signalText.includes("someone to handle it") ||
       signalText.includes("handle it") ||
       signalText.includes("full setup done for me");
   });
@@ -842,6 +1099,14 @@ function hasGuidedExperienceSignal(options: Array<QuizOption | undefined>) {
     if (!option) return false;
     const signalText = `${option.id} ${option.label} ${option.text}`.toLowerCase();
     return signalText.includes("not sure");
+  });
+}
+
+function hasAdviceSignal(options: Array<QuizOption | undefined>) {
+  return options.some((option) => {
+    if (!option) return false;
+    const signalText = `${option.id} ${option.label} ${option.text}`.toLowerCase();
+    return signalText.includes("advice");
   });
 }
 
@@ -901,7 +1166,7 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   const initialRoutingId = currentAudience === "business-owner"
     ? initialAnswers[BUSINESS_PRIMARY_PROMPT_ID]
     : currentAudience === "personal-help"
-      ? initialAnswers.personal_primary_need
+      ? initialAnswers[PERSONAL_PRIMARY_PROMPT_ID]
       : initialAnswers.problem_need;
   const initialPrompts = buildQuizPrompts(initialRoutingId, currentAudience);
 
@@ -937,7 +1202,7 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   const selectedRoutingId = currentAudience === "business-owner"
     ? answers[BUSINESS_PRIMARY_PROMPT_ID]
     : currentAudience === "personal-help"
-      ? answers.personal_primary_need
+      ? answers[PERSONAL_PRIMARY_PROMPT_ID]
       : answers.problem_need;
   const selectedAudienceLabel = AUDIENCE_SEGMENTS.find((segment) => segment.id === currentAudience)?.label;
   const selectedCategory = HELP_CATEGORY_MAP[selectedRoutingId ?? ""] ?? "General Support";
@@ -1000,17 +1265,27 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   const selectedBusinessFollowUpThree = businessFollowUpThreePrompt
     ? getSelectedOption(businessFollowUpThreePrompt.options, answers[businessFollowUpThreePrompt.id])
     : undefined;
-  const selectedPersonalCategory = getSelectedOption(PERSONAL_PRIMARY_HELP_OPTIONS, answers.personal_primary_need);
-  const selectedPersonalSituation = getSelectedOption(PERSONAL_SITUATION_OPTIONS, answers.personal_situation);
-  const selectedPersonalGoal = getSelectedOption(PERSONAL_GOAL_OPTIONS, answers.personal_goal);
+  const selectedPersonalCategory = getSelectedOption(PERSONAL_PRIMARY_HELP_OPTIONS, answers[PERSONAL_PRIMARY_PROMPT_ID]);
+  const personalFollowUpOnePrompt = isPersonalAudience ? prompts[1] : undefined;
+  const personalFollowUpTwoPrompt = isPersonalAudience ? prompts[2] : undefined;
+  const personalFollowUpThreePrompt = isPersonalAudience ? prompts[3] : undefined;
+  const selectedPersonalFollowUpOne = personalFollowUpOnePrompt
+    ? getSelectedOption(personalFollowUpOnePrompt.options, answers[personalFollowUpOnePrompt.id])
+    : undefined;
+  const selectedPersonalFollowUpTwo = personalFollowUpTwoPrompt
+    ? getSelectedOption(personalFollowUpTwoPrompt.options, answers[personalFollowUpTwoPrompt.id])
+    : undefined;
+  const selectedPersonalFollowUpThree = personalFollowUpThreePrompt
+    ? getSelectedOption(personalFollowUpThreePrompt.options, answers[personalFollowUpThreePrompt.id])
+    : undefined;
   const selectedLegacySituation = getSelectedOption(SITUATION_OPTIONS, answers.situation_now);
   const selectedLegacyHelp = getSelectedOption(ALL_HELP_OPTIONS, answers.problem_need);
   const selectedLocation = getSelectedOption(LOCATION_OPTIONS, answers.location);
   const selectedUrgency = getSelectedOption(URGENCY_OPTIONS, answers.urgency);
   const selectedBudget = getSelectedOption(BUDGET_OPTIONS, answers.budget);
   const selectedDiagnosticCategory = isBusinessAudience ? selectedBusinessCategory : selectedPersonalCategory;
-  const selectedDiagnosticSituation = isBusinessAudience ? selectedBusinessFollowUpOne : selectedPersonalSituation;
-  const selectedDiagnosticGoal = isBusinessAudience ? selectedBusinessFollowUpThree : selectedPersonalGoal;
+  const selectedDiagnosticSituation = isBusinessAudience ? selectedBusinessFollowUpOne : selectedPersonalFollowUpOne;
+  const selectedDiagnosticGoal = isBusinessAudience ? selectedBusinessFollowUpThree : selectedPersonalFollowUpThree;
   const isFirstQuestion = currentIndex <= 0;
 
   useEffect(() => {
@@ -1094,22 +1369,35 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
       selectedBusinessFollowUpTwo,
       selectedBusinessFollowUpThree,
     ];
-    const businessHasUrgentSignal = isBusinessAudience && hasUrgentBusinessSignal(businessSelectedOptions);
-    const businessHasDoItForMeSignal = isBusinessAudience && hasDoItForMeSignal(businessSelectedOptions);
+    const personalSelectedOptions = [
+      selectedPersonalFollowUpOne,
+      selectedPersonalFollowUpTwo,
+      selectedPersonalFollowUpThree,
+    ];
+    const businessHasUrgentSignal = isBusinessAudience && hasUrgentSignal(businessSelectedOptions);
+    const personalHasUrgentSignal = isPersonalAudience && hasUrgentSignal(personalSelectedOptions);
+    const businessHasDoItForMeSignal = isBusinessAudience && hasPremiumServiceSignal(businessSelectedOptions);
+    const personalHasDoItForMeSignal = isPersonalAudience && hasPremiumServiceSignal(personalSelectedOptions);
     const businessNeedsGuidedExperience = isBusinessAudience && hasGuidedExperienceSignal(businessSelectedOptions);
+    const personalNeedsGuidedExperience = isPersonalAudience && hasGuidedExperienceSignal(personalSelectedOptions);
+    const personalAdviceSignal = isPersonalAudience && hasAdviceSignal(personalSelectedOptions);
     const urgencyPreference = isBusinessAudience
       ? businessHasUrgentSignal
         ? "24-48 hours"
         : undefined
       : isPersonalAudience
-        ? selectedPersonalSituation?.id === "personal_situation_urgent"
+        ? personalHasUrgentSignal
           ? "24-48 hours"
           : undefined
         : selectedUrgency?.text;
     const basePriorityActions = buildPriorityActions(selectedCategory, answers);
-    const priorityActions = businessNeedsGuidedExperience
-      ? ["Needs guided experience: user selected at least one \"Not sure\" response.", ...basePriorityActions].slice(0, 3)
-      : basePriorityActions;
+    const priorityActions = [
+      ...(businessNeedsGuidedExperience || personalNeedsGuidedExperience
+        ? ["Guided AI first: user selected at least one \"Not sure\" response."]
+        : []),
+      ...(personalAdviceSignal ? ["Advice-first support can start with a lower-cost, scalable service path."] : []),
+      ...basePriorityActions,
+    ].slice(0, 3);
     const derivedLeadTier = deriveLeadTier(
       assessment.normalizedScore,
       selectedCategory,
@@ -1119,7 +1407,10 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
     const highValueProblemLead = isBusinessAudience &&
       selectedBusinessCategory?.id === "biz_need_fix_problem" &&
       businessHasUrgentSignal;
-    const leadTier: LeadTier = highValueProblemLead || businessHasDoItForMeSignal ? "premium" : derivedLeadTier;
+    const leadTier: LeadTier =
+      highValueProblemLead || businessHasDoItForMeSignal || personalHasDoItForMeSignal
+        ? "premium"
+        : derivedLeadTier;
     const categoryBreakdown = [{
       category: selectedCategory,
       riskPoints: assessment.totalRiskPoints,
@@ -1336,6 +1627,13 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                         <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs text-[#7B89A2]">{businessFollowUpTwoPrompt?.text || "Question 2"}</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedBusinessFollowUpTwo?.text || "Not selected yet"}</p></div>
                         <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs text-[#7B89A2]">{businessFollowUpThreePrompt?.text || "Question 3"}</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedBusinessFollowUpThree?.text || "Not selected yet"}</p></div>
                       </>
+                    ) : isPersonalAudience ? (
+                      <>
+                        <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Category</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedPersonalCategory?.text || "Not selected yet"}</p></div>
+                        <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs text-[#7B89A2]">{personalFollowUpOnePrompt?.text || "Question 1"}</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedPersonalFollowUpOne?.text || "Not selected yet"}</p></div>
+                        <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs text-[#7B89A2]">{personalFollowUpTwoPrompt?.text || "Question 2"}</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedPersonalFollowUpTwo?.text || "Not selected yet"}</p></div>
+                        <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs text-[#7B89A2]">{personalFollowUpThreePrompt?.text || "Question 3"}</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedPersonalFollowUpThree?.text || "Not selected yet"}</p></div>
+                      </>
                     ) : (
                       <>
                         <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Category</p><p className="mt-2 text-sm font-semibold text-[#111827]">{selectedDiagnosticCategory?.text || "Not selected yet"}</p></div>
@@ -1359,7 +1657,7 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                 <div className="mt-4 space-y-3">
                   <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">Takes 60 seconds · No commitment · Instant results.</p></div>
                   <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">Not sure about an answer? Choose the closest option — the system is designed to guide you even if you’re unsure.</p></div>
-                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">{isBusinessAudience ? "Category plus your three business follow-up answers drive smarter expert matching." : isPersonalAudience ? "Category, situation, and goal help us match you with the right expert faster." : "Budget, urgency, and location help us rank the right experts faster."}</p></div>
+                  <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4"><p className="text-sm font-medium text-[#111827]">{isBusinessAudience ? "Category plus your three business follow-up answers drive smarter expert matching." : isPersonalAudience ? "Category plus your three personal follow-up answers help us match the right expert type faster." : "Budget, urgency, and location help us rank the right experts faster."}</p></div>
                 </div>
               </div>
             </aside>
@@ -1386,6 +1684,12 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                           { label: businessFollowUpTwoPrompt?.text || "Question 2", value: selectedBusinessFollowUpTwo?.label || "—" },
                           { label: businessFollowUpThreePrompt?.text || "Question 3", value: selectedBusinessFollowUpThree?.label || "—" },
                         ]
+                        : isPersonalAudience
+                          ? [
+                            { label: personalFollowUpOnePrompt?.text || "Question 1", value: selectedPersonalFollowUpOne?.label || "—" },
+                            { label: personalFollowUpTwoPrompt?.text || "Question 2", value: selectedPersonalFollowUpTwo?.label || "—" },
+                            { label: personalFollowUpThreePrompt?.text || "Question 3", value: selectedPersonalFollowUpThree?.label || "—" },
+                          ]
                         : isDiagnosticAudience
                           ? [
                             { label: "Situation", value: selectedDiagnosticSituation?.label || "—" },

@@ -163,6 +163,27 @@ function getRecommendedExpertType(category: AssessmentSubmission["highestRiskCat
   return "Guidance Specialist";
 }
 
+function getGuidedFeelingLabel(submission: AssessmentSubmission) {
+  const situationResponse = submission.responses.find((response) => response.questionId === "situation_now");
+  const urgencyResponse = submission.responses.find((response) => response.questionId === "urgency");
+  const situationId = situationResponse?.selectedOptionId ?? "";
+  const urgencyId = urgencyResponse?.selectedOptionId ?? "";
+
+  if (urgencyId === "urgency_now" || urgencyId === "urgency_48h" || situationId === "situation_urgent") {
+    return "urgent";
+  }
+
+  if (
+    situationId === "situation_not_working" ||
+    situationId === "situation_failed" ||
+    situationId === "situation_start_or_fix"
+  ) {
+    return "stuck";
+  }
+
+  return "confused";
+}
+
 const missingReasonOptions: { value: MissingFeedbackReason; label: string }[] = [
   { value: "budget", label: "Budget" },
   { value: "relevance", label: "Relevance" },
@@ -268,6 +289,11 @@ export default function ResultsPage() {
   const attentionLabel = isBusinessAudience ? "High Risk" : "What Needs Attention";
   const personalizedMatchMessage = getPersonalizedMatchMessage(submission, highestRisk.category);
   const recommendedExpertType = getRecommendedExpertType(highestRisk.category);
+  const guidedNeedResponse = submission.responses.find((response) => response.questionId === "problem_need");
+  const guidedSupportStatement =
+    submission.lead.audienceSegment === "not-sure"
+      ? `Based on your answers, it looks like you're feeling ${getGuidedFeelingLabel(submission)} and need help with ${guidedNeedResponse?.selectedOptionText?.toLowerCase() ?? "your current challenge"}. We recommend starting with ${recommendedExpertType}.`
+      : null;
   const personaCards = assessmentMode === "cybersecurity-risk"
     ? [
         { label: "Cybersecurity Persona", profile: cyberPersona },
@@ -344,6 +370,11 @@ export default function ResultsPage() {
               </Badge>
               <h2 className="mt-4 text-3xl font-semibold tracking-tight text-[#111827]">Start with the clearest move, then connect with the right expert.</h2>
               <p className="mt-3 text-sm leading-7 text-[#5D6B85]">We organized your result so the first action is obvious before you review the deeper detail.</p>
+              {guidedSupportStatement ? (
+                <p className="mt-3 rounded-xl border border-[#D9E3F3] bg-white px-4 py-3 text-sm leading-7 text-[#111827]">
+                  {guidedSupportStatement}
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" className="h-11 rounded-xl bg-[#356AF6] px-6 text-white hover:bg-[#2C59D8]">

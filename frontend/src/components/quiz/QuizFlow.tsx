@@ -821,15 +821,35 @@ const INDIVIDUAL_HELP_OPTIONS: QuizOption[] = [
 ];
 
 const NOT_SURE_HELP_OPTIONS: QuizOption[] = [
-  { id: "need_operations", label: "Business / operations", text: "Business / operations", support: "For process, execution, or workflow issues.", riskPoints: 4 },
-  { id: "need_cybersecurity", label: "Cybersecurity / tech", text: "Cybersecurity / tech", support: "For online protection, recovery, or tech concerns.", riskPoints: 5 },
+  { id: "need_career_help", label: "Work or career support", text: "Work or career support", support: "For career direction, transitions, and job progress.", riskPoints: 4 },
   { id: "need_financial_advice", label: "Financial advice", text: "Financial advice", support: "For money, planning, or financial decisions.", riskPoints: 4 },
   { id: "need_legal_help", label: "Legal help", text: "Legal help", support: "For legal guidance and next steps.", riskPoints: 5 },
+  { id: "need_personal_tech_support", label: "Technology help", text: "Technology help", support: "For devices, accounts, or personal IT issues.", riskPoints: 4 },
+  { id: "need_operations", label: "Business support", text: "Business support", support: "For setup, operations, and practical business issues.", riskPoints: 4 },
+  { id: "need_general_support", label: "I’m not sure, guide me", text: "I’m not sure, guide me", support: "We’ll start with guided support and route you smartly.", riskPoints: 4 },
+];
+
+const GUIDED_SITUATION_OPTIONS: QuizOption[] = [
+  { id: "situation_start", label: "I don’t know where to start", text: "I don’t know where to start", support: "You need a clear first move.", riskPoints: 5 },
+  { id: "situation_urgent", label: "I need help urgently", text: "I need help urgently", support: "Time pressure is high right now.", riskPoints: 8 },
+  { id: "situation_not_working", label: "Something isn’t working but I don’t know why", text: "Something isn’t working but I don’t know why", support: "There’s friction but root cause is unclear.", riskPoints: 6 },
+  { id: "situation_failed", label: "I tried before but it didn’t work", text: "I tried before but it didn’t work", support: "Previous attempt did not solve it.", riskPoints: 7 },
+  { id: "situation_need_advice", label: "I need expert advice before making a decision", text: "I need expert advice before making a decision", support: "You need confidence before moving.", riskPoints: 5 },
+  { id: "situation_start_or_fix", label: "I want to start or fix something (business or personal)", text: "I want to start or fix something (business or personal)", support: "You need direction with implementation support.", riskPoints: 5 },
+  { id: "situation_trust", label: "I don’t know who to trust", text: "I don’t know who to trust", support: "You need trustworthy expert guidance.", riskPoints: 5 },
+  { id: "situation_clear_direction", label: "I just want clear direction", text: "I just want clear direction", support: "You need simple, practical next steps.", riskPoints: 4 },
+];
+
+const GUIDED_URGENCY_OPTIONS: QuizOption[] = [
+  { id: "urgency_now", label: "Right now (urgent)", text: "Right now (urgent)", support: "You need help as soon as possible.", riskPoints: 8 },
+  { id: "urgency_week", label: "This week", text: "This week", support: "You need support soon, but not instantly.", riskPoints: 5 },
+  { id: "urgency_exploring", label: "Just exploring", text: "Just exploring", support: "You are gathering clarity first.", riskPoints: 2 },
 ];
 
 const ALL_HELP_OPTIONS: QuizOption[] = [
   ...BUSINESS_HELP_OPTIONS,
   ...INDIVIDUAL_HELP_OPTIONS,
+  { id: "need_general_support", label: "General support", text: "General support", support: "Guided support when you are not sure where to begin.", riskPoints: 4 },
 ];
 
 const LOCATION_OPTIONS: QuizOption[] = [
@@ -953,6 +973,34 @@ function getPersonalDiagnosticPrompts(selectedCategory: QuizCategory, selectedNe
 }
 
 function getBasePrompts(selectedCategory: QuizCategory, audience?: AudienceSegment): QuizPrompt[] {
+  if (audience === "not-sure") {
+    return [
+      {
+        id: "situation_now",
+        text: "Which of these feels closest to your situation?",
+        helper: "Choose the statement that best matches where you are right now.",
+        category: "General Support",
+        options: GUIDED_SITUATION_OPTIONS,
+      },
+      {
+        id: "problem_need",
+        text: "What would help you the most right now?",
+        helper: "We’ll use this to guide you to the right support type quickly.",
+        category: selectedCategory,
+        options: NOT_SURE_HELP_OPTIONS,
+      },
+      {
+        id: "urgency",
+        text: "How urgent is this for you?",
+        helper: "Urgency helps us prioritize your matching path.",
+        category: selectedCategory,
+        options: GUIDED_URGENCY_OPTIONS,
+      },
+      { id: "location", text: "Where are you located?", helper: "We use this to prioritize nearby or remote-friendly experts.", category: selectedCategory, options: LOCATION_OPTIONS },
+      { id: "budget", text: "What budget range are you working with?", helper: "A quick range helps us keep the recommendations practical.", category: selectedCategory, options: BUDGET_OPTIONS },
+    ];
+  }
+
   const helpOptions = getHelpOptionsForAudience(audience);
 
   return [
@@ -1006,9 +1054,9 @@ function deriveInitialAnswers(initialSituation: string | undefined, audience: Au
     return {} as Record<string, string>;
   }
 
-  if (SITUATION_OPTIONS.some((option) => option.id === initialSituation)) {
-    return { situation_now: initialSituation };
-  }
+  if (initialSituation === "situation_stuck") return { situation_now: "situation_not_working" };
+  if (GUIDED_SITUATION_OPTIONS.some((option) => option.id === initialSituation)) return { situation_now: initialSituation };
+  if (SITUATION_OPTIONS.some((option) => option.id === initialSituation)) return { situation_now: initialSituation };
   return {} as Record<string, string>;
 }
 
@@ -1278,10 +1326,19 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   const selectedPersonalFollowUpThree = personalFollowUpThreePrompt
     ? getSelectedOption(personalFollowUpThreePrompt.options, answers[personalFollowUpThreePrompt.id])
     : undefined;
-  const selectedLegacySituation = getSelectedOption(SITUATION_OPTIONS, answers.situation_now);
-  const selectedLegacyHelp = getSelectedOption(ALL_HELP_OPTIONS, answers.problem_need);
+  const legacySituationPrompt = prompts.find((prompt) => prompt.id === "situation_now");
+  const legacyHelpPrompt = prompts.find((prompt) => prompt.id === "problem_need");
+  const legacyUrgencyPrompt = prompts.find((prompt) => prompt.id === "urgency");
+  const selectedLegacySituation = legacySituationPrompt
+    ? getSelectedOption(legacySituationPrompt.options, answers.situation_now)
+    : getSelectedOption(SITUATION_OPTIONS, answers.situation_now);
+  const selectedLegacyHelp = legacyHelpPrompt
+    ? getSelectedOption(legacyHelpPrompt.options, answers.problem_need)
+    : getSelectedOption(ALL_HELP_OPTIONS, answers.problem_need);
   const selectedLocation = getSelectedOption(LOCATION_OPTIONS, answers.location);
-  const selectedUrgency = getSelectedOption(URGENCY_OPTIONS, answers.urgency);
+  const selectedUrgency = legacyUrgencyPrompt
+    ? getSelectedOption(legacyUrgencyPrompt.options, answers.urgency)
+    : getSelectedOption(URGENCY_OPTIONS, answers.urgency);
   const selectedBudget = getSelectedOption(BUDGET_OPTIONS, answers.budget);
   const selectedDiagnosticCategory = isBusinessAudience ? selectedBusinessCategory : selectedPersonalCategory;
   const selectedDiagnosticSituation = isBusinessAudience ? selectedBusinessFollowUpOne : selectedPersonalFollowUpOne;
@@ -1374,13 +1431,21 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
       selectedPersonalFollowUpTwo,
       selectedPersonalFollowUpThree,
     ];
+    const guidedSelectedOptions = [
+      selectedLegacySituation,
+      selectedLegacyHelp,
+      selectedUrgency,
+    ];
     const businessHasUrgentSignal = isBusinessAudience && hasUrgentSignal(businessSelectedOptions);
     const personalHasUrgentSignal = isPersonalAudience && hasUrgentSignal(personalSelectedOptions);
     const businessHasDoItForMeSignal = isBusinessAudience && hasPremiumServiceSignal(businessSelectedOptions);
     const personalHasDoItForMeSignal = isPersonalAudience && hasPremiumServiceSignal(personalSelectedOptions);
+    const guidedHasDoItForMeSignal = currentAudience === "not-sure" && hasPremiumServiceSignal(guidedSelectedOptions);
     const businessNeedsGuidedExperience = isBusinessAudience && hasGuidedExperienceSignal(businessSelectedOptions);
     const personalNeedsGuidedExperience = isPersonalAudience && hasGuidedExperienceSignal(personalSelectedOptions);
+    const guidedNeedsGuidedExperience = currentAudience === "not-sure" && hasGuidedExperienceSignal(guidedSelectedOptions);
     const personalAdviceSignal = isPersonalAudience && hasAdviceSignal(personalSelectedOptions);
+    const guidedAdviceSignal = currentAudience === "not-sure" && hasAdviceSignal(guidedSelectedOptions);
     const urgencyPreference = isBusinessAudience
       ? businessHasUrgentSignal
         ? "24-48 hours"
@@ -1389,13 +1454,21 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
         ? personalHasUrgentSignal
           ? "24-48 hours"
           : undefined
-        : selectedUrgency?.text;
+        : selectedUrgency?.id === "urgency_now"
+          ? "24-48 hours"
+          : selectedUrgency?.id === "urgency_week"
+            ? "Within a week"
+            : currentAudience === "not-sure" && hasUrgentSignal(guidedSelectedOptions)
+              ? "24-48 hours"
+            : selectedUrgency?.text;
     const basePriorityActions = buildPriorityActions(selectedCategory, answers);
     const priorityActions = [
-      ...(businessNeedsGuidedExperience || personalNeedsGuidedExperience
+      ...(businessNeedsGuidedExperience || personalNeedsGuidedExperience || guidedNeedsGuidedExperience
         ? ["Guided AI first: user selected at least one \"Not sure\" response."]
         : []),
-      ...(personalAdviceSignal ? ["Advice-first support can start with a lower-cost, scalable service path."] : []),
+      ...(personalAdviceSignal || guidedAdviceSignal
+        ? ["Advice-first support can start with a lower-cost, scalable service path."]
+        : []),
       ...basePriorityActions,
     ].slice(0, 3);
     const derivedLeadTier = deriveLeadTier(
@@ -1408,7 +1481,7 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
       selectedBusinessCategory?.id === "biz_need_fix_problem" &&
       businessHasUrgentSignal;
     const leadTier: LeadTier =
-      highValueProblemLead || businessHasDoItForMeSignal || personalHasDoItForMeSignal
+      highValueProblemLead || businessHasDoItForMeSignal || personalHasDoItForMeSignal || guidedHasDoItForMeSignal
         ? "premium"
         : derivedLeadTier;
     const categoryBreakdown = [{

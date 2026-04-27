@@ -34,8 +34,8 @@ const audienceSegments = [
   },
   {
     id: "not-sure",
-    title: "I'm not sure",
-    support: "We'll guide you to the right path.",
+    title: "I'm Not Sure What I Need",
+    support: "Answer a few quick questions and we’ll guide you to the right solution.",
     icon: CircleHelp,
     color: "text-[#8B5CF6]",
     bg: "bg-[#F3EDFF]",

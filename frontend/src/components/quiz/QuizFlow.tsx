@@ -7,6 +7,7 @@ import {
   Building2,
   Globe2,
   Loader2,
+  LocateFixed,
   Mail,
   MapPin,
   Phone,
@@ -128,6 +129,50 @@ const BAHAMAS_ISLAND_OPTIONS = [
   "Ragged Island",
   "Other Family Island",
 ];
+
+const FINAL_QUESTIONS_HELPER = "Just a few quick details so we can match you with the right expert.";
+
+const BAHAMAS_ISLAND_ALIASES: Array<{ token: string; island: string }> = [
+  { token: "new providence", island: "New Providence" },
+  { token: "nassau", island: "New Providence" },
+  { token: "grand bahama", island: "Grand Bahama" },
+  { token: "freeport", island: "Grand Bahama" },
+  { token: "abaco", island: "Abaco" },
+  { token: "exuma", island: "Exuma" },
+  { token: "eleuthera", island: "Eleuthera" },
+  { token: "andros", island: "Andros" },
+  { token: "long island", island: "Long Island" },
+  { token: "bimini", island: "Bimini" },
+  { token: "cat island", island: "Cat Island" },
+  { token: "harbour island", island: "Harbour Island" },
+  { token: "berry islands", island: "Berry Islands" },
+  { token: "san salvador", island: "San Salvador" },
+  { token: "acklins", island: "Acklins" },
+  { token: "crooked island", island: "Crooked Island" },
+  { token: "mayaguana", island: "Mayaguana" },
+  { token: "ragged island", island: "Ragged Island" },
+  { token: "family islands", island: "Other Family Island" },
+];
+
+interface ReverseGeocodeAddress {
+  house_number?: string;
+  road?: string;
+  neighbourhood?: string;
+  suburb?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  county?: string;
+  state?: string;
+  island?: string;
+  country?: string;
+  country_code?: string;
+}
+
+interface ReverseGeocodeResponse {
+  display_name?: string;
+  address?: ReverseGeocodeAddress;
+}
 
 const AUDIENCE_SEGMENTS: { id: AudienceSegment; label: string }[] = [
   { id: "business-owner", label: "Business owner" },
@@ -842,7 +887,8 @@ const GUIDED_SITUATION_OPTIONS: QuizOption[] = [
 
 const GUIDED_URGENCY_OPTIONS: QuizOption[] = [
   { id: "urgency_now", label: "Right now (urgent)", text: "Right now (urgent)", support: "You need help as soon as possible.", riskPoints: 8 },
-  { id: "urgency_week", label: "This week", text: "This week", support: "You need support soon, but not instantly.", riskPoints: 5 },
+  { id: "urgency_48h", label: "24-48 hours", text: "24-48 hours", support: "You need someone who can move very quickly.", riskPoints: 7 },
+  { id: "urgency_week", label: "Within a week", text: "Within a week", support: "You need support soon, but not instantly.", riskPoints: 5 },
   { id: "urgency_exploring", label: "Just exploring", text: "Just exploring", support: "You are gathering clarity first.", riskPoints: 2 },
 ];
 
@@ -860,17 +906,18 @@ const LOCATION_OPTIONS: QuizOption[] = [
 ];
 
 const URGENCY_OPTIONS: QuizOption[] = [
+  { id: "urgency_now", label: "Right now (urgent)", text: "Right now (urgent)", support: "You need immediate support.", riskPoints: 8 },
   { id: "urgency_48h", label: "24-48 hours", text: "24-48 hours", support: "You need someone who can move quickly.", riskPoints: 8 },
   { id: "urgency_week", label: "Within a week", text: "Within a week", support: "You need help soon, but not immediately.", riskPoints: 5 },
   { id: "urgency_exploring", label: "Just exploring", text: "Just exploring", support: "You are gathering clarity before moving.", riskPoints: 2 },
 ];
 
 const BUDGET_OPTIONS: QuizOption[] = [
-  { id: "budget_under_150", label: "Under $150/hour", text: "Under $150/hour", support: "Keep the shortlist focused on leaner options.", riskPoints: 1 },
-  { id: "budget_150_175", label: "$150-$175/hour", text: "$150-$175/hour", support: "Balanced budget for specialist support.", riskPoints: 1 },
-  { id: "budget_176_200", label: "$176-$200/hour", text: "$176-$200/hour", support: "Premium-range advisor support.", riskPoints: 1 },
-  { id: "budget_200_plus", label: "$200+/hour", text: "$200+/hour", support: "Open to senior or highly specialized providers.", riskPoints: 1 },
-  { id: "budget_unsure", label: "Not sure yet", text: "Not sure yet", support: "You want clarity first, then pricing options.", riskPoints: 2 },
+  { id: "budget_free", label: "Free / just exploring", text: "Free / just exploring", support: "You are exploring options before committing spend.", riskPoints: 1 },
+  { id: "budget_low", label: "Low ($0-$150)", text: "Low ($0-$150)", support: "You want cost-conscious options.", riskPoints: 1 },
+  { id: "budget_medium", label: "Medium ($150-$500)", text: "Medium ($150-$500)", support: "You are open to a balanced service investment.", riskPoints: 1 },
+  { id: "budget_high", label: "High ($500+)", text: "High ($500+)", support: "You are open to premium support.", riskPoints: 1 },
+  { id: "budget_unsure", label: "Not sure", text: "Not sure", support: "You want clarity first, then pricing options.", riskPoints: 2 },
 ];
 
 const PRIOR_EXPERIENCE_OPTIONS = [
@@ -992,12 +1039,12 @@ function getBasePrompts(selectedCategory: QuizCategory, audience?: AudienceSegme
       {
         id: "urgency",
         text: "How urgent is this for you?",
-        helper: "Urgency helps us prioritize your matching path.",
+        helper: FINAL_QUESTIONS_HELPER,
         category: selectedCategory,
         options: GUIDED_URGENCY_OPTIONS,
       },
+      { id: "budget", text: "What budget range are you comfortable with?", helper: "This keeps recommendations aligned with what works for you.", category: selectedCategory, options: BUDGET_OPTIONS },
       { id: "location", text: "Where are you located?", helper: "We use this to prioritize nearby or remote-friendly experts.", category: selectedCategory, options: LOCATION_OPTIONS },
-      { id: "budget", text: "What budget range are you working with?", helper: "A quick range helps us keep the recommendations practical.", category: selectedCategory, options: BUDGET_OPTIONS },
     ];
   }
 
@@ -1006,9 +1053,9 @@ function getBasePrompts(selectedCategory: QuizCategory, audience?: AudienceSegme
   return [
     { id: "situation_now", text: "What situation are you in right now?", helper: "Pick the statement that feels closest to what you're dealing with.", category: "General Support", options: SITUATION_OPTIONS },
     { id: "problem_need", text: "What problem do you need solved?", helper: "This keeps the rest of the flow focused and simple.", category: selectedCategory, options: helpOptions },
+    { id: "urgency", text: "How soon do you need help?", helper: FINAL_QUESTIONS_HELPER, category: selectedCategory, options: URGENCY_OPTIONS },
+    { id: "budget", text: "What budget range are you comfortable with?", helper: "This keeps recommendations aligned with what works for you.", category: selectedCategory, options: BUDGET_OPTIONS },
     { id: "location", text: "Where are you located?", helper: "We use this to prioritize nearby or remote-friendly experts.", category: selectedCategory, options: LOCATION_OPTIONS },
-    { id: "urgency", text: "How soon do you need help?", helper: "This helps us prioritize response time and shortlist the right providers.", category: selectedCategory, options: URGENCY_OPTIONS },
-    { id: "budget", text: "What budget range are you working with?", helper: "A quick range helps us keep the recommendations practical.", category: selectedCategory, options: BUDGET_OPTIONS },
   ];
 }
 
@@ -1079,6 +1126,57 @@ function getLocationSuggestions(value?: string, scope?: "bahamas" | "outside-bah
   );
 }
 
+function isBahamasAddress(response?: ReverseGeocodeResponse) {
+  const countryCode = response?.address?.country_code?.toLowerCase();
+  const country = response?.address?.country?.toLowerCase();
+  return countryCode === "bs" || country?.includes("bahamas") === true;
+}
+
+function deriveIslandFromAddress(address?: ReverseGeocodeAddress) {
+  if (!address) return "";
+  const searchableParts = [
+    address.island,
+    address.state,
+    address.county,
+    address.city,
+    address.town,
+    address.village,
+    address.suburb,
+    address.neighbourhood,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (!searchableParts) return "";
+  const matchedAlias = BAHAMAS_ISLAND_ALIASES.find((alias) => searchableParts.includes(alias.token));
+  return matchedAlias?.island ?? "";
+}
+
+function buildAddressFromReverseLookup(response?: ReverseGeocodeResponse) {
+  const address = response?.address;
+  if (!address) return response?.display_name?.split(",").slice(0, 3).join(", ").trim() ?? "";
+
+  const roadWithNumber = [address.house_number, address.road].filter(Boolean).join(" ").trim();
+  const locality =
+    address.city ||
+    address.town ||
+    address.village ||
+    address.county ||
+    address.state ||
+    address.island;
+  const parts = [roadWithNumber || address.road, address.suburb || address.neighbourhood, locality, address.country]
+    .filter(Boolean)
+    .map((part) => String(part).trim());
+  const uniqueParts = Array.from(new Set(parts.filter(Boolean)));
+
+  if (uniqueParts.length === 0) {
+    return response?.display_name?.split(",").slice(0, 3).join(", ").trim() ?? "";
+  }
+
+  return uniqueParts.join(", ");
+}
+
 function deriveLeadLocationDefaults(selectedLocationId?: string) {
   if (selectedLocationId === "location_nassau") {
     return { locationScope: "bahamas" as const, island: "New Providence", location: "Nassau, New Providence" };
@@ -1112,9 +1210,9 @@ function deriveLeadTier(
   if (
     category === "Cybersecurity" ||
     normalizedScore >= 60 ||
+    urgencyPreference === "Right now (urgent)" ||
     urgencyPreference === "24-48 hours" ||
-    budgetPreference === "$176-$200/hour" ||
-    budgetPreference === "$200+/hour"
+    budgetPreference === "High ($500+)"
   ) {
     return "premium";
   }
@@ -1222,6 +1320,8 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   const [currentIndex, setCurrentIndex] = useState(() => getFirstUnansweredIndex(initialPrompts, initialAnswers));
   const [flowStep, setFlowStep] = useState<FlowStep>("quiz");
   const [isLocationSuggestionsOpen, setIsLocationSuggestionsOpen] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [locationDetectionMessage, setLocationDetectionMessage] = useState("");
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<LeadCaptureFormValues>({
     defaultValues: {
@@ -1376,6 +1476,73 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
     }, 140);
   };
 
+  const handleDetectCurrentLocation = async () => {
+    if (isDetectingLocation) return;
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      setLocationDetectionMessage("Location auto-detect is not supported on this device. Please enter your address manually.");
+      return;
+    }
+
+    setIsDetectingLocation(true);
+    setLocationDetectionMessage("Detecting your location...");
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 12000,
+          maximumAge: 120000,
+        });
+      });
+
+      const params = new URLSearchParams({
+        format: "jsonv2",
+        lat: String(position.coords.latitude),
+        lon: String(position.coords.longitude),
+        addressdetails: "1",
+      });
+      const reverseLookup = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+        headers: { "Accept-Language": "en" },
+      });
+
+      if (!reverseLookup.ok) {
+        throw new Error("REVERSE_LOOKUP_FAILED");
+      }
+
+      const reverseLookupPayload = (await reverseLookup.json()) as ReverseGeocodeResponse;
+      const detectedAddress = buildAddressFromReverseLookup(reverseLookupPayload);
+      if (!detectedAddress) {
+        throw new Error("EMPTY_ADDRESS");
+      }
+
+      const inBahamas = isBahamasAddress(reverseLookupPayload);
+      const detectedIsland = inBahamas ? deriveIslandFromAddress(reverseLookupPayload.address) : "";
+
+      setValue("location", detectedAddress, { shouldDirty: true, shouldValidate: true });
+      setValue("locationScope", inBahamas ? "bahamas" : "outside-bahamas", { shouldDirty: true, shouldValidate: true });
+      setValue("island", inBahamas ? detectedIsland : "", { shouldDirty: true, shouldValidate: true });
+      setIsLocationSuggestionsOpen(false);
+      setLocationDetectionMessage("Location detected. You can adjust it if needed.");
+    } catch (error) {
+      const geolocationErrorCode =
+        typeof error === "object" && error !== null && "code" in error
+          ? (error as { code?: number }).code
+          : undefined;
+
+      if (geolocationErrorCode === 1) {
+        setLocationDetectionMessage("Location access is blocked. Allow location access or enter your address manually.");
+      } else if (geolocationErrorCode === 2) {
+        setLocationDetectionMessage("Unable to detect your location right now. Please enter your address manually.");
+      } else if (geolocationErrorCode === 3) {
+        setLocationDetectionMessage("Location request timed out. Please try again or enter your address manually.");
+      } else {
+        setLocationDetectionMessage("Couldn’t auto-detect your address. You can enter it manually.");
+      }
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  };
+
   const handleOptionSelect = (prompt: QuizPrompt, option: QuizOption) => {
     if (flowStep !== "quiz") return;
     setAnswers((previous) => ({ ...previous, [prompt.id]: option.id }));
@@ -1448,18 +1615,20 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
     const guidedAdviceSignal = currentAudience === "not-sure" && hasAdviceSignal(guidedSelectedOptions);
     const urgencyPreference = isBusinessAudience
       ? businessHasUrgentSignal
-        ? "24-48 hours"
+        ? "Right now (urgent)"
         : undefined
       : isPersonalAudience
         ? personalHasUrgentSignal
-          ? "24-48 hours"
+          ? "Right now (urgent)"
           : undefined
         : selectedUrgency?.id === "urgency_now"
-          ? "24-48 hours"
+          ? "Right now (urgent)"
+          : selectedUrgency?.id === "urgency_48h"
+            ? "24-48 hours"
           : selectedUrgency?.id === "urgency_week"
             ? "Within a week"
             : currentAudience === "not-sure" && hasUrgentSignal(guidedSelectedOptions)
-              ? "24-48 hours"
+              ? "Right now (urgent)"
             : selectedUrgency?.text;
     const basePriorityActions = buildPriorityActions(selectedCategory, answers);
     const priorityActions = [
@@ -1921,7 +2090,20 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                       ) : null}
 
                       <div className="space-y-1.5">
-                        <label htmlFor="location" className="text-sm font-medium text-[#111827]">Address</label>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <label htmlFor="location" className="text-sm font-medium text-[#111827]">Address</label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDetectCurrentLocation}
+                            disabled={isDetectingLocation}
+                            className="h-8 rounded-lg border-[#D9E3F3] px-3 text-xs text-[#111827] hover:bg-[#F7FAFF]"
+                          >
+                            {isDetectingLocation ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
+                            {isDetectingLocation ? "Detecting..." : "Use my current location"}
+                          </Button>
+                        </div>
                         <div className="relative">
                           <MapPin className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
                           <input
@@ -1961,7 +2143,20 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                             </div>
                           ) : null}
                         </div>
-                        <p className="text-xs text-[#7B89A2]">Start typing and pick the closest address suggestion, just like a lightweight Google-style search.</p>
+                        {locationDetectionMessage ? (
+                          <p className={cn(
+                            "text-xs",
+                            locationDetectionMessage.includes("detected")
+                              ? "text-emerald-700"
+                              : locationDetectionMessage.includes("Detecting")
+                                ? "text-[#5D6B85]"
+                                : "text-amber-700",
+                          )}
+                          >
+                            {locationDetectionMessage}
+                          </p>
+                        ) : null}
+                        <p className="text-xs text-[#7B89A2]">We can auto-detect your location where possible, and you can always adjust it manually.</p>
                         {errors.location ? <p className="text-xs text-rose-600">{errors.location.message}</p> : null}
                       </div>
                     </div>

@@ -117,7 +117,15 @@ function scoreLocation(profile: ExpertMarketplaceProfile, submissionLocation?: s
 
 function scoreBudget(hourlyRateUsd: number, budgetPreference?: string) {
   switch (budgetPreference) {
-    case "Under $150/hour":
+    case "Free / just exploring":
+      if (hourlyRateUsd <= 150) {
+        return { score: 92, reason: "Keeps costs lean while you are still exploring options." };
+      }
+      if (hourlyRateUsd <= 185) {
+        return { score: 78, reason: "A bit above a free/lean budget, but still workable for guidance." };
+      }
+      return { score: 62, reason: "Likely above what you want to spend while exploring." };
+    case "Low ($0-$150)":
       if (hourlyRateUsd < 150) {
         return { score: 100, reason: "Fits your preferred cost range." };
       }
@@ -125,28 +133,23 @@ function scoreBudget(hourlyRateUsd: number, budgetPreference?: string) {
         return { score: 74, reason: "Slightly above budget, but still close to your range." };
       }
       return { score: 56, reason: "Above the preferred budget range." };
-    case "$150-$175/hour":
-      if (hourlyRateUsd >= 150 && hourlyRateUsd <= 175) {
-        return { score: 100, reason: "Matches your target budget range well." };
+    case "Medium ($150-$500)":
+      if (hourlyRateUsd >= 150 && hourlyRateUsd <= 500) {
+        return { score: 100, reason: "Matches your medium budget comfort range." };
       }
-      if (hourlyRateUsd < 150 || hourlyRateUsd <= 185) {
-        return { score: 82, reason: "Near your target budget range." };
+      if (hourlyRateUsd < 150) {
+        return { score: 84, reason: "Below your stated budget, while still a strong fit." };
       }
-      return { score: 62, reason: "Higher than the budget range you selected." };
-    case "$176-$200/hour":
-      if (hourlyRateUsd >= 176 && hourlyRateUsd <= 200) {
-        return { score: 100, reason: "Matches the premium budget range you selected." };
+      return { score: 72, reason: "Higher than your selected budget comfort range." };
+    case "High ($500+)":
+      if (hourlyRateUsd >= 220) {
+        return { score: 100, reason: "Matches the premium support level you selected." };
       }
-      if (hourlyRateUsd >= 160 && hourlyRateUsd < 176) {
-        return { score: 84, reason: "A little below your range, but still a close budget fit." };
+      if (hourlyRateUsd >= 180) {
+        return { score: 88, reason: "Close to premium pricing with strong specialist depth." };
       }
-      return { score: 68, reason: "Not the closest budget fit, but still in a workable band." };
-    case "$200+/hour":
-      if (hourlyRateUsd >= 200) {
-        return { score: 100, reason: "Fits the enterprise-level budget you selected." };
-      }
-      return { score: 88, reason: "Comes in below your maximum budget ceiling." };
-    case "Not sure yet":
+      return { score: 74, reason: "Below premium range, but still a practical option." };
+    case "Not sure":
     case undefined:
       return { score: 78, reason: "Budget is still flexible, so fit is primarily driven by expertise." };
     default:
@@ -156,12 +159,21 @@ function scoreBudget(hourlyRateUsd: number, budgetPreference?: string) {
 
 function scoreUrgency(availableWithin48Hours: boolean, availableInHours: number, urgencyPreference?: string) {
   switch (urgencyPreference) {
+    case "Right now (urgent)":
+      if (availableInHours <= 24) {
+        return { score: 100, reason: "Can respond right away for your urgent timeline." };
+      }
+      if (availableWithin48Hours) {
+        return { score: 90, reason: "Can respond quickly and still close to your urgent need." };
+      }
+      return { score: 48, reason: "Availability is slower than your urgent timeline." };
     case "24-48 hours":
       if (availableWithin48Hours) {
         return { score: 100, reason: "Can respond within your urgent timeline." };
       }
       return { score: 52, reason: "Availability is slower than your urgent timeline." };
     case "Within a week":
+    case "This week":
       if (availableInHours <= 168) {
         return { score: 100, reason: "Can support your one-week timeline." };
       }

@@ -70,8 +70,7 @@ export function PreQuizSelector() {
           Pick the option that feels closest to your current situation and we&apos;ll
           keep the rest of the quiz focused and simple.
         </p>
-      </div>
-
+      </div> 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {situations.map((situation, index) => {
           const Icon = situation.icon;
@@ -93,7 +92,7 @@ export function PreQuizSelector() {
                     <Badge variant="outline" className="border-[#D9E3F3] text-xs text-[#7B89A2]">
                       0{index + 1}
                     </Badge>
-                  </div>
+                  </div>   
                   <CardTitle className="text-lg text-[#111827]">{situation.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">

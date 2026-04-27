@@ -139,7 +139,9 @@ function deriveCyberPersona(submission: AssessmentSubmission): PersonaProfile {
 }
 
 function getSuggestedTimeframe(urgencyPreference?: string) {
+  if (urgencyPreference === "Right now (urgent)") return "Immediately, ideally in the next 24 hours";
   if (urgencyPreference === "24-48 hours") return "Within the next 24-48 hours";
+  if (urgencyPreference === "This week") return "Within the next 7 days";
   if (urgencyPreference === "Within a week") return "Within the next 7 days";
   if (urgencyPreference === "Just exploring") return "This week, before making the next decision";
   return "As soon as practical";

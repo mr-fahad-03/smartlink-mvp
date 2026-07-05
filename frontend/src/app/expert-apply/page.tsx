@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   BadgeCheck,
@@ -20,6 +22,9 @@ import {
 
 import { InnerNav } from "@/components/navigation/inner-nav";
 import { Button } from "@/components/ui/button";
+import { getAdminAccessToken, getSessionMe } from "@/lib/admin-session";
+import { getMyExpertApplicationStatus, submitExpertApplicationToBackend, uploadExpertDocumentToBackend } from "@/lib/backend-api";
+import { canUseExpertSection } from "@/lib/role-guard";
 
 const EXPERT_DRAFT_STORAGE_KEY = "smartlink:expert-application-draft";
 
@@ -53,11 +58,11 @@ interface ExpertApplicationDraft {
   availabilityStatus: string;
   maxClientsPerWeek: string;
   preferredWorkTypes: string;
-  governmentIdUploaded: boolean;
-  professionalHeadshotUploaded: boolean;
-  referenceContactsReady: boolean;
-  businessLicenseAttached: boolean;
-  certificationsProvided: boolean;
+  governmentIdUploaded: boolean | string;
+  professionalHeadshotUploaded: boolean | string;
+  referenceContactsReady: boolean | string;
+  businessLicenseAttached: boolean | string;
+  certificationsProvided: boolean | string;
 }
 
 const defaultDraft: ExpertApplicationDraft = {
@@ -105,16 +110,78 @@ function calcStrength(draft: ExpertApplicationDraft) {
   return Math.round((textFilled / profileFieldKeys.length) * 65 + (docsFilled / uploadFields.length) * 35);
 }
 
-function getChecklistStatus(filled: boolean): { label: string; color: string; dot: string } {
+function getChecklistStatus(filled: boolean | string): { label: string; color: string; dot: string } {
   if (filled) return { label: "Completed", color: "text-[#16A34A]", dot: "bg-[#16A34A]" };
   return { label: "Missing", color: "text-[#9CA3AF]", dot: "bg-[#D1D5DB]" };
 }
 
-export default function ExpertApplyPage() {
+import { Suspense } from "react";
+
+function ExpertApplyContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const allowResubmit = searchParams.get("resubmit") === "1";
   const [draft, setDraft] = useState<ExpertApplicationDraft>(defaultDraft);
   const [currentStep, setCurrentStep] = useState(0);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({});
   const strength = useMemo(() => calcStrength(draft), [draft]);
+
+  useEffect(() => {
+    let active = true;
+    getSessionMe()
+      .then(async (session) => {
+        if (!active) return;
+        if (!canUseExpertSection(session.role)) {
+          router.replace("/login");
+          return;
+        }
+
+        const token = getAdminAccessToken();
+        if (!token) return;
+
+        const statusView = await getMyExpertApplicationStatus(token);
+        const application = statusView?.application;
+        if (!application) return;
+
+        const isResubmittable = application.status === "rejected" || application.status === "needs_info";
+        if (!isResubmittable && !allowResubmit) {
+          router.replace("/expert-application-status");
+          return;
+        }
+
+        const metadata = application.expert_profile_metadata;
+        const snapshot =
+          metadata && typeof metadata === "object" && "application_snapshot" in metadata
+            ? (metadata.application_snapshot as Partial<ExpertApplicationDraft>)
+            : null;
+
+        if (snapshot) {
+          setDraft((prev) => ({ ...prev, ...snapshot }));
+        }
+
+        if (application.status === "rejected") {
+          setSubmitError(`Previous submission was rejected: ${application.review_notes || "No reason provided."} Update and resubmit.`);
+        }
+
+        if (application.status === "needs_info") {
+          setSubmitError(
+            `Additional details requested: ${application.requested_info_notes || application.review_notes || "Please update and resubmit."}`,
+          );
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        router.replace("/login");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [allowResubmit, router]);
 
   useEffect(() => {
     const stored = globalThis.localStorage?.getItem(EXPERT_DRAFT_STORAGE_KEY);
@@ -127,8 +194,24 @@ export default function ExpertApplyPage() {
   const set = <K extends keyof ExpertApplicationDraft>(field: K, value: ExpertApplicationDraft[K]) =>
     setDraft((prev) => ({ ...prev, [field]: value }));
 
-  const toggle = (field: ExpertDraftBooleanField) =>
-    setDraft((prev) => ({ ...prev, [field]: !prev[field] }));
+  const handleFileUpload = async (key: ExpertDraftBooleanField, file: File | null) => {
+    if (!file) return;
+    const token = getAdminAccessToken();
+    if (!token) {
+      setSubmitError("Session expired. Please login to upload files.");
+      return;
+    }
+    
+    setUploadingFiles(prev => ({ ...prev, [key]: true }));
+    try {
+      const response = await uploadExpertDocumentToBackend(file, token);
+      setDraft((prev) => ({ ...prev, [key]: response.data.fileUrl }));
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to upload file.");
+    } finally {
+      setUploadingFiles(prev => ({ ...prev, [key]: false }));
+    }
+  };
 
   const saveDraft = () => {
     globalThis.localStorage?.setItem(EXPERT_DRAFT_STORAGE_KEY, JSON.stringify(draft));
@@ -140,6 +223,30 @@ export default function ExpertApplyPage() {
     globalThis.localStorage?.removeItem(EXPERT_DRAFT_STORAGE_KEY);
     setDraft(defaultDraft);
     setCurrentStep(0);
+  };
+
+  const submitApplication = async () => {
+    setSubmitError(null);
+    setSubmitSuccess(null);
+
+    const token = getAdminAccessToken();
+    if (!token) {
+      setSubmitError("Session expired. Please login again.");
+      router.replace("/login");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await submitExpertApplicationToBackend(draft, token);
+      globalThis.localStorage?.removeItem(EXPERT_DRAFT_STORAGE_KEY);
+      setSubmitSuccess("Application submitted for review.");
+      router.push("/expert-application-status?submitted=1");
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Failed to submit application.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const initials =
@@ -177,6 +284,11 @@ export default function ExpertApplyPage() {
             <BadgeCheck className="h-3.5 w-3.5" />
             Applications are reviewed within 2 business days. You&apos;ll be notified once approved.
           </p>
+          <div className="mt-4">
+            <Button asChild variant="outline" className="h-10 rounded-xl border-[#D9E3F3]">
+              <Link href="/expert-profile-optimizer">Improve My Profile with AI</Link>
+            </Button>
+          </div>
         </section>
 
         {/* ── STEP PROGRESS ── */}
@@ -294,16 +406,20 @@ export default function ExpertApplyPage() {
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {uploadFields.map(({ label, key, hint }) => (
-                    <button
+                    <label
                       key={key}
-                      type="button"
-                      onClick={() => toggle(key)}
-                      className={`flex flex-col gap-2 rounded-xl border p-4 text-left transition ${
+                      className={`relative flex cursor-pointer flex-col gap-2 rounded-xl border p-4 text-left transition ${
                         draft[key]
                           ? "border-[#BBF7D0] bg-[#F0FDF4]"
                           : "border-dashed border-[#C8D6EE] bg-white hover:border-[#356AF6]/50"
-                      }`}
+                      } ${uploadingFiles[key] ? "opacity-50 pointer-events-none" : ""}`}
                     >
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => handleFileUpload(key, e.target.files?.[0] || null)}
+                        disabled={uploadingFiles[key]}
+                      />
                       <div className="flex items-center justify-between gap-2">
                         <span className={`text-sm font-semibold ${draft[key] ? "text-[#15803D]" : "text-[#111827]"}`}>{label}</span>
                         {draft[key]
@@ -313,9 +429,9 @@ export default function ExpertApplyPage() {
                       </div>
                       <p className="text-[0.7rem] text-[#9CA3AF]">{hint}</p>
                       <span className={`mt-1 inline-flex self-start rounded-full px-2.5 py-0.5 text-xs font-semibold ${draft[key] ? "bg-[#DCFCE7] text-[#15803D]" : "bg-[#EEF3FF] text-[#356AF6]"}`}>
-                        {draft[key] ? "Added ✓" : "Upload"}
+                        {uploadingFiles[key] ? "Uploading..." : draft[key] ? "Uploaded ✓" : "Upload"}
                       </span>
-                    </button>
+                    </label>
                   ))}
                 </div>
                 <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
@@ -478,11 +594,17 @@ export default function ExpertApplyPage() {
                       <RotateCcw className="h-4 w-4" />
                       Clear
                     </Button>
-                    <Button className="rounded-xl bg-[#356AF6] text-white hover:bg-[#2C59D8]">
-                      Submit &amp; Start Receiving Client Matches
+                    <Button
+                      onClick={submitApplication}
+                      disabled={submitting}
+                      className="rounded-xl bg-[#356AF6] text-white hover:bg-[#2C59D8] disabled:opacity-70"
+                    >
+                      {submitting ? "Submitting..." : "Submit & Start Receiving Client Matches"}
                     </Button>
                   </div>
                   {savedMsg && <span className="w-full text-xs text-[#16A34A]">{savedMsg}</span>}
+                  {submitSuccess && <span className="w-full text-xs text-[#16A34A]">{submitSuccess}</span>}
+                  {submitError && <span className="w-full text-xs text-rose-600">{submitError}</span>}
                 </div>
               </section>
             )}
@@ -630,5 +752,13 @@ export default function ExpertApplyPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function ExpertApplyPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ExpertApplyContent />
+    </Suspense>
   );
 }

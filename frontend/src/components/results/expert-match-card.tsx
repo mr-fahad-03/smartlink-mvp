@@ -14,6 +14,10 @@ interface ExpertMatchCardProps {
   matchScore: number;
   locationFitStrong: boolean;
   isFirstTimeUser: boolean;
+  badges?: string[];
+  slotLabel?: string | null;
+  rank?: number;
+  matchReasonTitle?: string;
 }
 
 export function ExpertMatchCard({
@@ -26,6 +30,10 @@ export function ExpertMatchCard({
   matchScore,
   locationFitStrong,
   isFirstTimeUser,
+  badges = [],
+  slotLabel,
+  rank,
+  matchReasonTitle,
 }: ExpertMatchCardProps) {
   const primarySpecialization =
     expert.specialties.find((specialty) => specialty === highestRiskCategory) ??
@@ -43,8 +51,21 @@ export function ExpertMatchCard({
       : null,
   ].filter((item): item is NonNullable<typeof item> => Boolean(item));
 
+  const isTopMatch = rank === 1 || slotLabel === "Top Match";
+  const badgeLabelToTone = (label: string) => {
+    if (label === "Featured") return "bg-[#F3EDFF] text-[#7C3AED]";
+    if (label === "Available Now") return "bg-[#EBF8EF] text-[#15803D]";
+    if (label === "Top Match") return "bg-[#EEF3FF] text-[#356AF6]";
+    if (label === "Strong Match") return "bg-[#E8F7EE] text-[#0F766E]";
+    if (label === "Rising Expert") return "bg-[#FFF7E8] text-[#B45309]";
+    if (label === "Remote Friendly") return "bg-[#EEF8FF] text-[#2563EB]";
+    if (label === "Matches Your Budget") return "bg-[#F3F4F6] text-[#374151]";
+    if (label === "Verified") return "bg-[#EBF8EF] text-[#15803D]";
+    return "bg-[#F7FAFF] text-[#5D6B85]";
+  };
+
   return (
-    <article className="rounded-[24px] border border-[#D9E3F3] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-5 shadow-[0_12px_28px_rgba(56,75,107,0.06)]">
+    <article className={`rounded-[24px] border bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-5 shadow-[0_12px_28px_rgba(56,75,107,0.06)] ${isTopMatch ? "border-[#9FC0FF] ring-2 ring-[#356AF6]/25" : "border-[#D9E3F3]"}`}>
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -52,15 +73,22 @@ export function ExpertMatchCard({
             <p className="text-sm text-[#5D6B85]">
               {expert.role} at {expert.organization}
             </p>
+            {slotLabel ? (
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#356AF6]">
+                {slotLabel}
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             <Badge className={`h-auto rounded-full px-3 py-1 text-xs font-semibold ${getMatchTierTone(matchTier)}`}>
               {matchTier}
             </Badge>
-            <Badge className="h-auto rounded-full bg-[#EBF8EF] px-3 py-1 text-xs font-semibold text-[#15803D]">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Verified
-            </Badge>
+            {badges.map((badgeLabel) => (
+              <Badge key={badgeLabel} className={`h-auto rounded-full px-3 py-1 text-xs font-semibold ${badgeLabelToTone(badgeLabel)}`}>
+                {badgeLabel === "Verified" ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
+                {badgeLabel}
+              </Badge>
+            ))}
             {isTopRated ? (
               <Badge className="h-auto rounded-full bg-[#FFF7E8] px-3 py-1 text-xs font-semibold text-[#B45309]">
                 <Star className="h-3.5 w-3.5" />
@@ -153,7 +181,7 @@ export function ExpertMatchCard({
 
         <div className="rounded-2xl border border-[#D9E3F3] bg-white p-4">
           <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">
-            Why You Matched
+            {matchReasonTitle || "Why This Match Works"}
           </p>
           <p className="mt-2 text-sm leading-6 text-[#111827]">{matchReason}</p>
           <p className="mt-2 text-xs text-[#5D6B85]">
@@ -163,10 +191,10 @@ export function ExpertMatchCard({
 
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">
-              Estimated Cost
+            <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">
+              Estimated cost
             </p>
-            <p className="text-sm font-semibold text-[#111827]">${expert.hourlyRateUsd}/hour</p>
+            <p className="text-xs text-[#5D6B85]">Within your preferred budget.</p>
           </div>
           <Button
             size="sm"

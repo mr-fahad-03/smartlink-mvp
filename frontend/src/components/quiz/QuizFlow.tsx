@@ -572,7 +572,7 @@ const PERSONAL_FOLLOW_UP_PROMPTS: Record<PersonalNeedRoute, [BusinessFollowUpPro
     },
     {
       id: "personal_career_challenge",
-      text: "What's your biggest challenge?",
+      text: "What’s your biggest challenge?",
       helper: "We'll focus your match around this blocker first.",
       options: [
         { id: "personal_career_challenge_interviews", label: "Not getting interviews", text: "Not getting interviews", support: "You need stronger positioning and applications.", riskPoints: 6 },
@@ -607,7 +607,7 @@ const PERSONAL_FOLLOW_UP_PROMPTS: Record<PersonalNeedRoute, [BusinessFollowUpPro
     },
     {
       id: "personal_money_issue",
-      text: "What's the biggest issue?",
+      text: "What’s the biggest issue?",
       helper: "We'll prioritize this first in your action path.",
       options: [
         { id: "personal_money_issue_spending", label: "Spending too much", text: "Spending too much", support: "Spending controls and habits need structure.", riskPoints: 5 },
@@ -642,7 +642,7 @@ const PERSONAL_FOLLOW_UP_PROMPTS: Record<PersonalNeedRoute, [BusinessFollowUpPro
     },
     {
       id: "personal_legal_situation",
-      text: "What's your situation?",
+      text: "What’s your situation?",
       helper: "Urgency and context improve response quality.",
       options: [
         { id: "personal_legal_situation_preventive", label: "Preventive (just checking)", text: "Preventive (just checking)", support: "You want to avoid future issues.", riskPoints: 3 },
@@ -665,7 +665,7 @@ const PERSONAL_FOLLOW_UP_PROMPTS: Record<PersonalNeedRoute, [BusinessFollowUpPro
   personal_need_technology_it_help: [
     {
       id: "personal_tech_issue",
-      text: "What's the issue?",
+      text: "What’s the issue?",
       helper: "Issue type helps us route quickly.",
       options: [
         { id: "personal_tech_issue_device", label: "Device not working", text: "Device not working", support: "Your device needs troubleshooting.", riskPoints: 5 },
@@ -711,7 +711,7 @@ const PERSONAL_FOLLOW_UP_PROMPTS: Record<PersonalNeedRoute, [BusinessFollowUpPro
     },
     {
       id: "personal_hustle_challenge",
-      text: "What's your biggest challenge?",
+      text: "What’s your biggest challenge?",
       helper: "We use this to focus your expert match.",
       options: [
         { id: "personal_hustle_challenge_start", label: "Don't know where to start", text: "Don't know where to start", support: "You need a clear first roadmap.", riskPoints: 5 },
@@ -746,7 +746,7 @@ const PERSONAL_FOLLOW_UP_PROMPTS: Record<PersonalNeedRoute, [BusinessFollowUpPro
     },
     {
       id: "personal_learning_challenge",
-      text: "What's the challenge?",
+      text: "What’s the challenge?",
       helper: "This helps us prioritize the most practical support mode.",
       options: [
         { id: "personal_learning_challenge_consistent", label: "Hard to stay consistent", text: "Hard to stay consistent", support: "You need accountability and a routine.", riskPoints: 4 },
@@ -781,7 +781,7 @@ const PERSONAL_FOLLOW_UP_PROMPTS: Record<PersonalNeedRoute, [BusinessFollowUpPro
     },
     {
       id: "personal_guidance_challenge",
-      text: "What's the biggest challenge?",
+      text: "What’s the biggest challenge?",
       helper: "We'll prioritize this blocker first.",
       options: [
         { id: "personal_guidance_challenge_overthinking", label: "Overthinking", text: "Overthinking", support: "You need decision structure and focus.", riskPoints: 4 },
@@ -841,14 +841,14 @@ const PERSONAL_FOLLOW_UP_PROMPTS: Record<PersonalNeedRoute, [BusinessFollowUpPro
 };
 
 const SITUATION_OPTIONS: QuizOption[] = [
-  { id: "situation_stuck", label: "My application is stuck", text: "My application is stuck", support: "You started, but progress has slowed or stalled.", riskPoints: 6 },
-  { id: "situation_start", label: "I don't know where to start", text: "I don't know where to start", support: "You need a clearer path before taking the next step.", riskPoints: 4 },
-  { id: "situation_urgent", label: "I need help urgently", text: "I need help urgently", support: "Time matters and you need support quickly.", riskPoints: 8 },
-  { id: "situation_failed", label: "I tried before but it didn't work", text: "I tried before but it didn't work", support: "You need a stronger plan after an earlier failed attempt.", riskPoints: 7 },
-  { id: "situation_not_working", label: "Something isn't working but I'm not sure why", text: "Something isn't working but I'm not sure why", support: "You need clarity before things get worse.", riskPoints: 5 },
-  { id: "situation_need_advice", label: "I need expert advice before making a decision", text: "I need expert advice before making a decision", support: "You want confidence before the next move.", riskPoints: 4 },
-  { id: "situation_business_help", label: "I need help starting or fixing a business", text: "I need help starting or fixing a business", support: "You need practical guidance to get a business moving or back on track.", riskPoints: 6 },
-  { id: "situation_trust", label: "I don't know who to trust", text: "I don't know who to trust", support: "You need a trustworthy direction before committing your time or money.", riskPoints: 5 },
+  { id: "situation_start", label: "I don’t know where to start", text: "I don’t know where to start", support: "You need a clear first move.", riskPoints: 5 },
+  { id: "situation_urgent", label: "I need help urgently", text: "I need help urgently", support: "Time pressure is high right now.", riskPoints: 8 },
+  { id: "situation_not_working", label: "Something isn’t working but I don’t know why", text: "Something isn’t working but I don’t know why", support: "There’s friction but root cause is unclear.", riskPoints: 6 },
+  { id: "situation_failed", label: "I tried before but it didn’t work", text: "I tried before but it didn’t work", support: "Previous attempt did not solve it.", riskPoints: 7 },
+  { id: "situation_need_advice", label: "I need expert advice before making a decision", text: "I need expert advice before making a decision", support: "You need confidence before moving.", riskPoints: 5 },
+  { id: "situation_start_or_fix", label: "I want to start or fix something (business or personal)", text: "I want to start or fix something (business or personal)", support: "You need direction with implementation support.", riskPoints: 5 },
+  { id: "situation_trust", label: "I don’t know who to trust", text: "I don’t know who to trust", support: "You need trustworthy expert guidance.", riskPoints: 5 },
+  { id: "situation_clear_direction", label: "I just want clear direction", text: "I just want clear direction", support: "You need simple, practical next steps.", riskPoints: 4 },
 ];
 
 const BUSINESS_HELP_OPTIONS: QuizOption[] = [
@@ -1051,9 +1051,9 @@ function getBasePrompts(selectedCategory: QuizCategory, audience?: AudienceSegme
   const helpOptions = getHelpOptionsForAudience(audience);
 
   return [
-    { id: "situation_now", text: "What situation are you in right now?", helper: "Pick the statement that feels closest to what you're dealing with.", category: "General Support", options: SITUATION_OPTIONS },
+    { id: "situation_now", text: "Which of these feels closest to your situation?", helper: "Pick the statement that feels closest to what you're dealing with.", category: "General Support", options: SITUATION_OPTIONS },
     { id: "problem_need", text: "What problem do you need solved?", helper: "This keeps the rest of the flow focused and simple.", category: selectedCategory, options: helpOptions },
-    { id: "urgency", text: "How soon do you need help?", helper: FINAL_QUESTIONS_HELPER, category: selectedCategory, options: URGENCY_OPTIONS },
+    { id: "urgency", text: "How urgent is this for you?", helper: FINAL_QUESTIONS_HELPER, category: selectedCategory, options: URGENCY_OPTIONS },
     { id: "budget", text: "What budget range are you comfortable with?", helper: "This keeps recommendations aligned with what works for you.", category: selectedCategory, options: BUDGET_OPTIONS },
     { id: "location", text: "Where are you located?", helper: "We use this to prioritize nearby or remote-friendly experts.", category: selectedCategory, options: LOCATION_OPTIONS },
   ];
@@ -1613,6 +1613,8 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
     const guidedNeedsGuidedExperience = currentAudience === "not-sure" && hasGuidedExperienceSignal(guidedSelectedOptions);
     const personalAdviceSignal = isPersonalAudience && hasAdviceSignal(personalSelectedOptions);
     const guidedAdviceSignal = currentAudience === "not-sure" && hasAdviceSignal(guidedSelectedOptions);
+    const guidedUrgentSignal = currentAudience === "not-sure" && hasUrgentSignal(guidedSelectedOptions);
+    const anyUrgentSignal = businessHasUrgentSignal || personalHasUrgentSignal || guidedUrgentSignal;
     const urgencyPreference = isBusinessAudience
       ? businessHasUrgentSignal
         ? "Right now (urgent)"
@@ -1625,9 +1627,9 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
           ? "Right now (urgent)"
           : selectedUrgency?.id === "urgency_48h"
             ? "24-48 hours"
-          : selectedUrgency?.id === "urgency_week"
-            ? "Within a week"
-            : currentAudience === "not-sure" && hasUrgentSignal(guidedSelectedOptions)
+          : selectedUrgency?.id === "urgency_week" || selectedUrgency?.id === "urgency_this_week"
+            ? "This week"
+            : guidedUrgentSignal
               ? "Right now (urgent)"
             : selectedUrgency?.text;
     const basePriorityActions = buildPriorityActions(selectedCategory, answers);
@@ -1665,6 +1667,14 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
       values.locationScope === "bahamas" && values.island && !baseLocation.toLowerCase().includes(values.island.toLowerCase())
         ? `${baseLocation}, ${values.island}`
         : baseLocation;
+    const smartIntentTag: "do_it_for_me" | "advice" | "guided" =
+      businessHasDoItForMeSignal || personalHasDoItForMeSignal || guidedHasDoItForMeSignal
+        ? "do_it_for_me"
+        : businessNeedsGuidedExperience || personalNeedsGuidedExperience || guidedNeedsGuidedExperience
+          ? "guided"
+          : personalAdviceSignal || guidedAdviceSignal
+            ? "advice"
+            : "guided";
     const diagnosticProfile = {
       categoryOptionId: isDiagnosticAudience ? selectedDiagnosticCategory?.id : selectedLegacyHelp?.id,
       categoryOptionText: isDiagnosticAudience ? selectedDiagnosticCategory?.text : selectedLegacyHelp?.text,
@@ -1672,6 +1682,10 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
       situationOptionText: isDiagnosticAudience ? selectedDiagnosticSituation?.text : selectedLegacySituation?.text,
       goalOptionId: isDiagnosticAudience ? selectedDiagnosticGoal?.id : undefined,
       goalOptionText: isDiagnosticAudience ? selectedDiagnosticGoal?.text : undefined,
+      smartIntentTag,
+      urgentProblemSignal: anyUrgentSignal,
+      premiumDoItForMeSignal: businessHasDoItForMeSignal || personalHasDoItForMeSignal || guidedHasDoItForMeSignal,
+      needsGuidedExperienceSignal: businessNeedsGuidedExperience || personalNeedsGuidedExperience || guidedNeedsGuidedExperience,
     };
 
     const responses = prompts.map((prompt) => {

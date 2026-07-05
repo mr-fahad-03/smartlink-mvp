@@ -21,6 +21,11 @@ import { Button } from "@/components/ui/button";
 import { mockQuizEnginePayload } from "@/data";
 import { loadAssessmentSubmission, updateAssessmentSubmission } from "@/lib/assessment-storage";
 import {
+  createIntroductionRequestsInBackend,
+  createLeadInBackend,
+  recommendMatchesFromBackend,
+} from "@/lib/backend-api";
+import {
   getMatchTierTone,
   rankExpertsForSubmission,
 } from "@/lib/expert-matching";
@@ -176,6 +181,9 @@ export default function ExpertMatchPage() {
   const [requestSent, setRequestSent] = useState(false);
   const [requestTimestamp, setRequestTimestamp] = useState<string | null>(null);
   const [hasLoggedView, setHasLoggedView] = useState(false);
+  const [backendRanked, setBackendRanked] = useState<{
+    ranked: ReturnType<typeof rankExpertsForSubmission>;
+  } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [serviceFilter, setServiceFilter] = useState("all");
   const [locationFilter, setLocationFilter] = useState("all");
@@ -217,13 +225,72 @@ export default function ExpertMatchPage() {
     if (!submission || !highestRisk) {
       return [];
     }
+    if (backendRanked?.ranked?.length) {
+      return backendRanked.ranked;
+    }
 
     return rankExpertsForSubmission(
       submission,
       highestRisk.category,
       mockQuizEnginePayload.experts,
     );
-  }, [highestRisk, submission]);
+  }, [backendRanked, highestRisk, submission]);
+
+  const rankingFingerprint = submission
+    ? `${submission.assessmentId}|${submission.highestRiskCategory}|${submission.lead.location}|${submission.lead.urgencyPreference || ""}|${submission.lead.budgetPreference || ""}`
+    : "";
+
+  useEffect(() => {
+    if (!submission || !highestRisk) return;
+    let cancelled = false;
+    const syncAndRank = async () => {
+      try {
+        await createLeadInBackend(submission);
+      } catch {
+        // Non-blocking.
+      }
+      try {
+        const recommendations = await recommendMatchesFromBackend(submission);
+        if (cancelled) return;
+        const mapped = recommendations.map((item) => {
+          const fallback = mockQuizEnginePayload.experts.find((candidate) => candidate.id === item.expert.id) || item.expert;
+          return {
+            expert: { ...fallback, ...item.expert },
+            profile: {
+              locationLabel: "The Bahamas",
+              coverageAreas: ["bahamas"],
+              remoteFriendly: item.badges.includes("Remote Friendly"),
+            },
+            totalScore: item.matchScore,
+            matchTier: item.matchBand,
+            primarySpecialization: (item.expert.specialties?.[0] || highestRisk.category),
+            availableWithin48Hours: item.availableNow,
+            availabilityLabel: item.availableNow ? "Available now" : "Available within 48 hours",
+            matchReason: item.explanation,
+            breakdown: {
+              category: item.breakdown.category,
+              location: item.breakdown.location,
+              budget: item.breakdown.budget,
+              urgency: item.breakdown.urgency,
+              experience: item.breakdown.reputation,
+              marketplaceBoost: item.breakdown.fairnessBoost + item.breakdown.performanceScore + item.breakdown.priorityBoost + item.breakdown.cooldownAdjustment,
+            },
+            backendBadges: item.badges,
+            backendSlotLabel: item.slotLabel,
+            backendRank: item.rank,
+          };
+        });
+        setBackendRanked({ ranked: mapped as ReturnType<typeof rankExpertsForSubmission> });
+      } catch {
+        if (!cancelled) setBackendRanked(null);
+      }
+    };
+
+    syncAndRank();
+    return () => {
+      cancelled = true;
+    };
+  }, [highestRisk, rankingFingerprint, submission]);
 
   const filteredExperts = useMemo(() => {
     return rankedExperts.filter((match) => {
@@ -469,7 +536,7 @@ export default function ExpertMatchPage() {
     });
   };
 
-  const submitIntroductionRequest = () => {
+  const submitIntroductionRequest = async () => {
     if (!submission || selectedServiceItems.length === 0) {
       return;
     }
@@ -575,6 +642,25 @@ export default function ExpertMatchPage() {
       setSelectedServices({});
       setRequestSent(true);
       setRequestTimestamp(now);
+      try {
+        await createIntroductionRequestsInBackend({
+          submission: updated,
+          requests: nextRequests.map((request) => ({
+            expertId: request.expertId,
+            expertName: request.expertName,
+            serviceIds: request.serviceIds,
+            serviceNames: request.serviceNames,
+            category: request.category,
+            urgencyLevel: request.urgencyLevel,
+            budgetPreference: request.budgetPreference,
+            billable: request.billable,
+            leadTier: request.leadTier,
+            expertTier: request.expertTier,
+          })),
+        });
+      } catch {
+        // Keep UX non-blocking if backend call fails.
+      }
     }
   };
 
@@ -733,7 +819,7 @@ export default function ExpertMatchPage() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-[#EEF2FA] pb-4 text-sm text-[#111827]">
-                      <span className="font-semibold text-[#111827]">${expert.hourlyRateUsd}/hr</span>
+                      <span className="text-xs text-[#5D6B85]">From around ${expert.hourlyRateUsd}/hr</span>
                       <span className="inline-flex items-center gap-2">
                         <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#356AF6] text-[#356AF6]">
                           <Star className="h-4 w-4 fill-current text-[#356AF6]" />
@@ -752,6 +838,26 @@ export default function ExpertMatchPage() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
+                      {((match as { backendSlotLabel?: string | null }).backendSlotLabel) ? (
+                        <Badge className="h-auto rounded-full bg-[#EEF3FF] px-3 py-1 text-xs font-semibold text-[#356AF6]">
+                          {(match as { backendSlotLabel?: string | null }).backendSlotLabel}
+                        </Badge>
+                      ) : null}
+                      {((match as { backendBadges?: string[] }).backendBadges || []).map((badge) => (
+                        <Badge key={`${expert.id}-${badge}`} className={`h-auto rounded-full px-3 py-1 text-xs font-semibold ${
+                          badge === "Featured"
+                            ? "bg-[#F3EDFF] text-[#7C3AED]"
+                            : badge === "Available Now"
+                              ? "bg-[#EBF8EF] text-[#15803D]"
+                              : badge === "Remote Friendly"
+                                ? "bg-[#EEF8FF] text-[#2563EB]"
+                                : badge === "Matches Your Budget"
+                                  ? "bg-[#F3F4F6] text-[#374151]"
+                                  : "bg-[#F7FAFF] text-[#5D6B85]"
+                        }`}>
+                          {badge}
+                        </Badge>
+                      ))}
                       <Badge className="h-auto rounded-full bg-[#EBF8EF] px-3 py-1 text-xs font-semibold text-[#15803D]">
                         Verified
                       </Badge>
@@ -1021,4 +1127,3 @@ export default function ExpertMatchPage() {
     </main>
   );
 }
-

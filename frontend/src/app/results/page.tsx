@@ -25,117 +25,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { mockQuizEnginePayload } from "@/data";
 import { loadAssessmentSubmission, saveAssessmentSubmission } from "@/lib/assessment-storage";
+import {
+  createLeadInBackend,
+  recommendMatchesFromBackend,
+  submitPrivateFeedbackToBackend,
+} from "@/lib/backend-api";
 import { rankExpertsForSubmission } from "@/lib/expert-matching";
 import type {
   AssessmentSubmission,
+  BackendMatchRecommendation,
   ConnectionStatus,
   MissingFeedbackReason,
   ResultsFeedbackAnswer,
 } from "@/types";
-
-interface PersonaProfile {
-  title: string;
-  description: string;
-  nextAction: string;
-  tone: string;
-}
 
 function toDisplayRiskLevel(riskLevel: AssessmentSubmission["riskLevel"]) {
   if (riskLevel === "critical") return "Critical";
   if (riskLevel === "high") return "High";
   if (riskLevel === "moderate") return "Moderate";
   return "Low";
-}
-
-function deriveGeneralPersona(submission: AssessmentSubmission): PersonaProfile {
-  const severeResponses = submission.responses.filter(
-    (response) => response.selectedOptionRiskPoints >= 7,
-  ).length;
-  const responseText = submission.responses
-    .map((response) => response.selectedOptionText.toLowerCase())
-    .join(" ");
-
-  if (submission.normalizedScore >= 65 || severeResponses >= 3) {
-    return {
-      title: "Urgent Fixer",
-      description:
-        "Your answers show immediate pressure in a few important areas, so speed matters now.",
-      nextAction:
-        "Start with the highest-priority issue and connect with an expert who can move within the next 48 hours.",
-      tone: "border-rose-200 bg-rose-50 text-rose-700",
-    };
-  }
-
-  if (
-    responseText.includes("manual") ||
-    responseText.includes("weekly") ||
-    responseText.includes("quarterly") ||
-    responseText.includes("basic") ||
-    responseText.includes("ad-hoc") ||
-    responseText.includes("didn't work")
-  ) {
-    return {
-      title: "Second Attempt",
-      description:
-        "You already have some motion, but the current setup is not strong enough to carry you through cleanly.",
-      nextAction:
-        "Strengthen what already exists and fix the weak points that are still slowing progress.",
-      tone: "border-amber-200 bg-amber-50 text-amber-700",
-    };
-  }
-
-  if (submission.normalizedScore <= 20) {
-    return {
-      title: "Starter",
-      description:
-        "You are early in the process and need clearer direction more than heavy intervention.",
-      nextAction:
-        "Use the first recommended action to build momentum before the issue grows more complex.",
-      tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    };
-  }
-
-  return {
-    title: "Stuck Operator",
-    description:
-      "You are moving, but unresolved friction is still creating drag, uncertainty, and slower decisions.",
-    nextAction:
-      "Remove the main blocker first, then follow with the next most practical action from your list.",
-    tone: "border-[#BFD0F8] bg-[#EEF3FF] text-[#356AF6]",
-  };
-}
-
-function deriveCyberPersona(submission: AssessmentSubmission): PersonaProfile {
-  if (submission.normalizedScore >= 60) {
-    return {
-      title: "At Risk",
-      description:
-        "Your cybersecurity answers suggest meaningful gaps that could affect operations, trust, or recovery.",
-      nextAction:
-        "Move first on protection, backup, and recovery readiness so the business is less exposed.",
-      tone: "border-rose-200 bg-rose-50 text-rose-700",
-    };
-  }
-
-  if (submission.normalizedScore >= 25) {
-    return {
-      title: "Partially Protected",
-      description:
-        "Some foundations are in place, but important protection areas still need tightening.",
-      nextAction:
-        "Prioritize the weak security areas showing medium-to-high risk and improve them one by one.",
-      tone: "border-amber-200 bg-amber-50 text-amber-700",
-    };
-  }
-
-  return {
-    title: "Well Protected",
-    description:
-      "Your answers point to a healthier baseline with fewer urgent protection gaps than average.",
-    nextAction:
-      "Keep your strongest protections current and close the remaining smaller gaps before they grow.",
-    tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  };
 }
 
 function getSuggestedTimeframe(urgencyPreference?: string) {
@@ -148,9 +56,8 @@ function getSuggestedTimeframe(urgencyPreference?: string) {
 }
 
 function getPersonalizedMatchMessage(submission: AssessmentSubmission, highestRiskCategory: string) {
-  const urgency = submission.lead.urgencyPreference?.toLowerCase() ?? "your timeline";
-  const budget = submission.lead.budgetPreference?.toLowerCase() ?? "your budget";
-  return `Based on your urgency (${urgency}) and budget (${budget}), we prioritized fast-response experts with strong alignment to ${highestRiskCategory}.`;
+  const timeline = getSuggestedTimeframe(submission.lead.urgencyPreference).toLowerCase();
+  return `We found experts who match your timeline (${timeline}) and are within your preferred budget for ${highestRiskCategory.toLowerCase()} support.`;
 }
 
 function getRecommendedExpertType(category: AssessmentSubmission["highestRiskCategory"]) {
@@ -186,16 +93,28 @@ function getGuidedFeelingLabel(submission: AssessmentSubmission) {
   return "confused";
 }
 
+function simplifyPriorityAction(action: string) {
+  const lower = action.toLowerCase();
+  if (lower.includes("identify the workflow") || lower.includes("pinpoint")) return "Find what's slowing you down.";
+  if (lower.includes("reduce friction") || lower.includes("simplify")) return "Fix what's broken before adding anything new.";
+  if (lower.includes("connect with")) return "Get expert help to move faster.";
+  if (lower.includes("clarify")) return "Get clear on the blocker first.";
+  return action;
+}
+
 const missingReasonOptions: { value: MissingFeedbackReason; label: string }[] = [
-  { value: "budget", label: "Budget" },
-  { value: "relevance", label: "Relevance" },
-  { value: "location", label: "Location" },
-  { value: "urgency", label: "Urgency" },
+  { value: "not_relevant", label: "Expert was not relevant" },
+  { value: "no_response", label: "Expert did not respond" },
+  { value: "too_expensive", label: "Too expensive" },
+  { value: "wrong_location", label: "Wrong location" },
+  { value: "different_help_needed", label: "I needed a different type of help" },
+  { value: "other", label: "Other" },
 ];
 
 export default function ResultsPage() {
   const [submission, setSubmission] = useState<AssessmentSubmission | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [backendMatches, setBackendMatches] = useState<BackendMatchRecommendation[] | null>(null);
 
   useEffect(() => {
     const stored = loadAssessmentSubmission();
@@ -222,19 +141,69 @@ export default function ResultsPage() {
 
   const rankedExperts = useMemo(() => {
     if (!submission || !highestRisk) return [];
+    if (backendMatches && backendMatches.length > 0) {
+      return backendMatches.map((backendMatch) => ({
+        expert: {
+          ...(mockQuizEnginePayload.experts.find((item) => item.id === backendMatch.expert.id) || backendMatch.expert),
+          ...backendMatch.expert,
+        },
+        totalScore: backendMatch.matchScore,
+        matchTier: backendMatch.matchBand,
+        matchReason: backendMatch.explanation,
+        availableWithin48Hours: backendMatch.availableNow,
+        availabilityLabel: backendMatch.availableNow ? "Available now" : "Available within 48 hours",
+        breakdown: {
+          category: backendMatch.breakdown.category,
+          location: backendMatch.breakdown.location,
+          budget: backendMatch.breakdown.budget,
+          urgency: backendMatch.breakdown.urgency,
+          experience: backendMatch.breakdown.reputation,
+          marketplaceBoost:
+            backendMatch.breakdown.fairnessBoost +
+            backendMatch.breakdown.performanceScore +
+            backendMatch.breakdown.priorityBoost +
+            backendMatch.breakdown.cooldownAdjustment,
+        },
+        backendBadges: backendMatch.badges,
+        backendSlotLabel: backendMatch.slotLabel,
+        backendRank: backendMatch.rank,
+      }));
+    }
     return rankExpertsForSubmission(
       submission,
       highestRisk.category,
       mockQuizEnginePayload.experts,
-    ).slice(0, 3);
-  }, [highestRisk, submission]);
+    ).slice(0, 5);
+  }, [backendMatches, highestRisk, submission]);
 
-  const generalPersona = useMemo(() => (submission ? deriveGeneralPersona(submission) : null), [submission]);
-  const cyberPersona = useMemo(() => (submission ? deriveCyberPersona(submission) : null), [submission]);
+  const rankingFingerprint = submission
+    ? `${submission.assessmentId}|${submission.highestRiskCategory}|${submission.lead.location}|${submission.lead.urgencyPreference || ""}|${submission.lead.budgetPreference || ""}`
+    : "";
 
-  const assessmentMode =
-    submission?.assessmentMode ??
-    (submission?.highestRiskCategory === "Cybersecurity" ? "cybersecurity-risk" : "business-services");
+  useEffect(() => {
+    if (!submission || !highestRisk) return;
+    let cancelled = false;
+
+    const syncAndRank = async () => {
+      try {
+        await createLeadInBackend(submission);
+      } catch {
+        // Non-blocking: continue ranking even if lead insert fails.
+      }
+      try {
+        const recommendations = await recommendMatchesFromBackend(submission);
+        if (!cancelled) setBackendMatches(recommendations);
+      } catch {
+        if (!cancelled) setBackendMatches(null);
+      }
+    };
+
+    syncAndRank();
+    return () => {
+      cancelled = true;
+    };
+  }, [highestRisk, rankingFingerprint, submission]);
+
   const leadTier = submission?.leadTier ?? "standard";
 
   if (!isLoaded) {
@@ -291,21 +260,36 @@ export default function ResultsPage() {
   const attentionLabel = isBusinessAudience ? "High Risk" : "What Needs Attention";
   const personalizedMatchMessage = getPersonalizedMatchMessage(submission, highestRisk.category);
   const recommendedExpertType = getRecommendedExpertType(highestRisk.category);
+  const primaryIssueLabel = highestRisk.category;
+  const urgencyLabel = submission.lead.urgencyPreference || "Within a week";
+  const statusSummary = `You’re dealing with ${primaryIssueLabel.toLowerCase()} and need support ${urgencyLabel.toLowerCase()}.`;
   const guidedNeedResponse = submission.responses.find((response) => response.questionId === "problem_need");
-  const guidedSupportStatement =
-    submission.lead.audienceSegment === "not-sure"
-      ? `Based on your answers, it looks like you're feeling ${getGuidedFeelingLabel(submission)} and need help with ${guidedNeedResponse?.selectedOptionText?.toLowerCase() ?? "your current challenge"}. We recommend starting with ${recommendedExpertType}.`
-      : null;
-  const personaCards = assessmentMode === "cybersecurity-risk"
-    ? [
-        { label: "Cybersecurity Persona", profile: cyberPersona },
-        { label: "General Flow Persona", profile: generalPersona },
-      ]
-    : [{ label: "Your Persona", profile: generalPersona }];
+  const hasGuidedSignal = Boolean(submission.diagnosticProfile?.needsGuidedExperienceSignal);
+  const shouldShowGuidedSupportStatement = submission.lead.audienceSegment === "not-sure" || hasGuidedSignal;
+  const guidedSupportStatement = shouldShowGuidedSupportStatement
+    ? `Based on your answers, it looks like you’re feeling ${getGuidedFeelingLabel(submission)} and need help with ${guidedNeedResponse?.selectedOptionText?.toLowerCase() ?? "your current challenge"}. We recommend starting with ${recommendedExpertType}.`
+    : null;
+  const personaCards = [
+    {
+      label: "Your Profile",
+      profile: {
+        title: "You're an Urgent Fixer",
+        description: "You're under pressure right now. The faster you act, the faster this gets fixed.",
+        nextAction: "Best move: Start with the biggest issue and connect with someone who can act quickly.",
+        tone: "border-rose-200 bg-rose-50 text-rose-700",
+      },
+    },
+  ];
   const sectionCardClass = "rounded-[28px] border border-[#D9E3F3] bg-white p-6 shadow-[0_14px_34px_rgba(56,75,107,0.08)]";
   const feedbackAnswer = submission.feedbackLoop?.userFeedback;
   const missingReasons = submission.feedbackLoop?.missingReasons ?? [];
+  const topMatchExpertId = rankedExperts[0]?.expert?.id;
   const connectionStatus = submission.feedbackLoop?.connectionStatus ?? "pending";
+  const viewedEvents = submission.userActionEvents?.filter((event) => event.actionType === "expert_match_viewed").length ?? 0;
+  const expertsViewedCount = viewedEvents > 0 ? viewedEvents : rankedExperts.length;
+  const introductionRequestedEvents = submission.userActionEvents?.filter((event) => event.actionType === "introduction_requested").length ?? 0;
+  const introductionsRequestedCount = introductionRequestedEvents > 0 ? introductionRequestedEvents : submission.introductionRequests?.length ?? 0;
+  const connectionsMadeCount = connectionStatus === "connected" ? 1 : 0;
   const hoursSinceSubmission = Math.floor((Date.now() - new Date(submission.submittedAt).getTime()) / (1000 * 60 * 60));
   const shouldShowFollowUp = hoursSinceSubmission >= 24;
 
@@ -319,6 +303,14 @@ export default function ResultsPage() {
         missingReasons: value === "no" ? current.feedbackLoop?.missingReasons ?? [] : [],
       },
     }));
+    if (submission) {
+      void submitPrivateFeedbackToBackend({
+        submission,
+        expertId: topMatchExpertId,
+        matchHelpfulRating: value,
+        feedbackReason: value === "no" ? submission.feedbackLoop?.missingReasons ?? [] : [],
+      }).catch(() => undefined);
+    }
   };
 
   const toggleMissingReason = (reason: MissingFeedbackReason) => {
@@ -338,6 +330,17 @@ export default function ResultsPage() {
         },
       };
     });
+    if (submission) {
+      const nextReasons = missingReasons.includes(reason)
+        ? missingReasons.filter((item) => item !== reason)
+        : [...missingReasons, reason];
+      void submitPrivateFeedbackToBackend({
+        submission,
+        expertId: topMatchExpertId,
+        matchHelpfulRating: "no",
+        feedbackReason: nextReasons,
+      }).catch(() => undefined);
+    }
   };
 
   const setConnectionStatus = (value: ConnectionStatus) => {
@@ -370,8 +373,11 @@ export default function ResultsPage() {
               <Badge className="h-auto rounded-full bg-[#EEF3FF] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#356AF6]">
                 Your Next Step
               </Badge>
-              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-[#111827]">Start with the clearest move, then connect with the right expert.</h2>
-              <p className="mt-3 text-sm leading-7 text-[#5D6B85]">We organized your result so the first action is obvious before you review the deeper detail.</p>
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-[#111827]">Here’s what’s going on—and the fastest way to fix it.</h2>
+              <p className="mt-3 text-sm leading-7 text-[#111827]">
+                Based on your answers, your biggest blocker is <strong>{primaryIssueLabel}</strong>, and it’s already slowing your progress.
+              </p>
+              <p className="mt-2 text-sm leading-7 text-[#5D6B85]">We made this simple so you know what to do next.</p>
               {guidedSupportStatement ? (
                 <p className="mt-3 rounded-xl border border-[#D9E3F3] bg-white px-4 py-3 text-sm leading-7 text-[#111827]">
                   {guidedSupportStatement}
@@ -381,15 +387,12 @@ export default function ResultsPage() {
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" className="h-11 rounded-xl bg-[#356AF6] px-6 text-white hover:bg-[#2C59D8]">
                 <Link href="/expert-match">
-                  Get Connected to the Right Expert
+                  Get Matched with the Right Expert
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="h-11 rounded-xl border-[#D9E3F3] bg-white text-[#111827] hover:bg-[#F7FAFF]">
-                <Link href="/expert-match?action=chat">Chat First</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="h-11 rounded-xl border-[#D9E3F3] bg-white text-[#111827] hover:bg-[#F7FAFF]">
-                <Link href="/expert-match?action=book">Book a Consultation</Link>
+                <Link href="/expert-match?action=chat">Talk to an Expert Now</Link>
               </Button>
             </div>
           </div>
@@ -407,19 +410,35 @@ export default function ResultsPage() {
             </div>
             <div className="rounded-2xl border border-[#D9E3F3] bg-white p-5">
               <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Recommended Action</p>
-              <p className="mt-2 text-base font-semibold leading-7 text-[#111827]">{submission.priorityActions[0]}</p>
+              <p className="mt-2 text-base font-semibold leading-7 text-[#111827]">{simplifyPriorityAction(submission.priorityActions[0])}</p>
             </div>
             <div className="rounded-2xl border border-[#D9E3F3] bg-white p-5">
               <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Suggested Timeframe</p>
               <p className="mt-2 text-xl font-semibold text-[#111827]">{getSuggestedTimeframe(submission.lead.urgencyPreference)}</p>
-              <p className="mt-2 text-sm leading-6 text-[#5D6B85]">Aligned to the urgency you selected in the quiz.</p>
+              <p className="mt-2 text-sm leading-6 text-[#5D6B85]">This matches how soon you want help.</p>
             </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-[#D9E3F3] bg-white p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">What this means</p>
+            <p className="mt-2 text-sm leading-7 text-[#111827]">
+              Something in your current process is slowing you down. Fixing this first will help everything else move faster.
+            </p>
           </div>
         </section>
 
         <section className="mt-6 grid gap-6 lg:grid-cols-[0.88fr_1.12fr]">
           <article className={sectionCardClass}>
-            <h2 className="text-xl font-semibold text-[#111827]">Top Priority Area</h2>
+            <h2 className="text-xl font-semibold text-[#111827]">User Status</h2>
+            <p className="mt-2 text-sm text-[#5D6B85]">{statusSummary}</p>
+            <div className="mt-4 rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">What to do next</p>
+              <div className="mt-3 space-y-2 text-sm text-[#111827]">
+                <p>1. Identify the blocker.</p>
+                <p>2. Simplify the process.</p>
+                <p>3. Connect with an expert.</p>
+              </div>
+            </div>
             <div className="mt-5">
               <RiskGauge
                 score={submission.normalizedScore}
@@ -438,7 +457,7 @@ export default function ResultsPage() {
               {highestRisk.category}
             </Badge>
             <p className="mt-4 text-sm leading-6 text-[#5D6B85]">
-              {isBusinessAudience ? "Your highest exposure right now is" : "The main area that needs attention right now is"} <strong>{highestRisk.category}</strong>. It scored {highestRisk.riskPoints}/{highestRisk.maxRiskPoints} points in this assessment.
+              {isBusinessAudience ? "Your main issue right now is" : "The main area that needs attention is"} <strong>{highestRisk.category}</strong>. This is where the biggest blocker is showing up.
             </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -459,7 +478,7 @@ export default function ResultsPage() {
             <div className="mt-5 space-y-3">
               {submission.priorityActions.map((action) => (
                 <div key={action} className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] px-4 py-3 text-sm leading-6 text-[#111827]">
-                  {action}
+                  {simplifyPriorityAction(action)}
                 </div>
               ))}
             </div>
@@ -473,7 +492,7 @@ export default function ResultsPage() {
               <h2 className="text-xl font-semibold text-[#111827]">Persona</h2>
             </div>
             <p className="mt-3 text-sm leading-6 text-[#5D6B85]">
-              We translated your answers into a simple persona so the next move is easier to understand.
+              You’re under pressure right now. Acting quickly gives you the fastest path to progress.
             </p>
 
             <div className={`mt-6 grid gap-5 ${personaCards.length > 1 ? "lg:grid-cols-2" : ""}`}>
@@ -501,6 +520,7 @@ export default function ResultsPage() {
             <ShieldCheck className="h-5 w-5 text-[#356AF6]" />
             <h2 className="text-xl font-semibold text-[#111827]">Matched Experts</h2>
           </div>
+          <p className="mt-3 text-sm font-medium text-[#111827]">The right expert can help you fix this fast.</p>
 
           <div className="mt-5 rounded-[22px] border border-[#B7EDC8] bg-[#F2FBF5] p-5">
             <p className="flex items-center gap-2 text-lg font-semibold text-[#15803D]">
@@ -516,7 +536,7 @@ export default function ResultsPage() {
             {[
               "Verified experts only",
               "Most users connect within 24-48 hours",
-              "No obligation to hire",
+              "Within your preferred budget",
             ].map((item) => (
               <div key={item} className="rounded-full border border-[#D9E3F3] bg-[#FCFDFF] px-4 py-2 text-sm font-medium text-[#111827]">
                 {item}
@@ -525,7 +545,7 @@ export default function ResultsPage() {
           </div>
 
           <p className="mt-5 max-w-4xl text-sm leading-7 text-[#5D6B85]">
-            Review the shortlist below, then move into the full expert-match screen when you are ready to compare options more closely.
+            We made this simple so you know what to do next.
           </p>
 
           <p className="mt-3 text-sm text-[#8A99B4]">
@@ -535,12 +555,12 @@ export default function ResultsPage() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Button asChild size="lg" className="h-11 rounded-xl bg-[#356AF6] px-6 text-white hover:bg-[#2C59D8]">
               <Link href="/expert-match">
-                See Your Best Matches
+                Get Matched with the Right Expert
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="h-11 rounded-xl border-[#D9E3F3] bg-white text-[#111827] hover:bg-[#F7FAFF]">
-              <Link href="/expert-match">Talk to an Expert Now</Link>
+              <Link href="/expert-match?action=chat">Talk to an Expert Now</Link>
             </Button>
           </div>
 
@@ -557,15 +577,47 @@ export default function ResultsPage() {
                 matchScore={match.totalScore}
                 locationFitStrong={match.breakdown.location >= 90}
                 isFirstTimeUser={submission.lead.priorConsultingExperience === "First time hiring outside expertise"}
+                badges={(match as { backendBadges?: string[] }).backendBadges}
+                slotLabel={(match as { backendSlotLabel?: string | null }).backendSlotLabel}
+                rank={(match as { backendRank?: number }).backendRank}
+                matchReasonTitle="Why this match works"
               />
             ))}
           </div>
         </section>
 
         <section className={`${sectionCardClass} mt-6`}>
+          <h2 className="text-xl font-semibold text-[#111827]">Progress Tracking</h2>
+          <p className="mt-2 text-sm text-[#5D6B85]">Track movement from first match to expert connection.</p>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Experts viewed</p>
+              <p className="mt-2 text-2xl font-semibold text-[#111827]">{expertsViewedCount}</p>
+            </div>
+            <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Introductions requested</p>
+              <p className="mt-2 text-2xl font-semibold text-[#111827]">{introductionsRequestedCount}</p>
+            </div>
+            <div className="rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-[#7B89A2]">Connections made</p>
+              <p className="mt-2 text-2xl font-semibold text-[#111827]">{connectionsMadeCount}</p>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B89A2]">Messaging & Follow-Up</p>
+            <div className="mt-3 space-y-2 text-sm text-[#111827]">
+              <p>Chat with experts: available after selecting your preferred match.</p>
+              <p>Notifications: we alert you when an expert responds or your request status changes.</p>
+              <p>Follow-up reminders: we check back within 24-48 hours if no connection is confirmed.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className={`${sectionCardClass} mt-6`}>
           <div className="flex items-center gap-2">
             <MessageSquareQuote className="h-5 w-5 text-[#356AF6]" />
-            <h2 className="text-xl font-semibold text-[#111827]">Did these results meet your needs?</h2>
+            <h2 className="text-xl font-semibold text-[#111827]">Was this helpful?</h2>
           </div>
           <p className="mt-2 text-sm leading-6 text-[#5D6B85]">
             We store your feedback and connection status to improve matching quality and future ranking logic over time.
@@ -596,7 +648,7 @@ export default function ResultsPage() {
 
           {feedbackAnswer === "no" ? (
             <div className="mt-5 rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4">
-              <p className="text-sm font-semibold text-[#111827]">What was missing?</p>
+              <p className="text-sm font-semibold text-[#111827]">What could be improved?</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {missingReasonOptions.map((reason) => (
                   <button
@@ -657,7 +709,7 @@ export default function ResultsPage() {
             <div className="mt-6 rounded-2xl border border-[#D9E3F3] bg-[#FCFDFF] p-4">
               <p className="text-sm font-semibold text-[#111827]">Follow-up Trigger</p>
               <p className="mt-2 text-sm leading-6 text-[#5D6B85]">
-                After 24-48 hours, we will prompt this session to confirm whether you connected with an expert.
+                We’ll check in within 24-48 hours to see if you connected with an expert.
               </p>
             </div>
           )}

@@ -14,6 +14,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { FaqAccordion } from "@/components/marketing/faq-accordion";
+import { HeaderAuth } from "@/components/navigation/header-auth";
 
 const audienceSegments = [
   {
@@ -107,19 +108,7 @@ export default function Home() {
             />
           </Link>
 
-          <nav className="hidden items-center gap-6 text-sm font-medium text-[#5D6B85] md:flex">
-            <a href="#how-it-works" className="transition hover:text-[#111827]">How It Works</a>
-            <a href="#faq" className="transition hover:text-[#111827]">FAQ</a>
-            <Link href="/expert-apply" className="transition hover:text-[#111827]">For Experts</Link>
-          </nav>
-
-          <Button
-            asChild
-            size="sm"
-            className="h-9 rounded-xl bg-[#356AF6] px-4 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(53,106,246,0.22)] hover:bg-[#2C59D8]"
-          >
-            <a href="#who-is-this-for">Get Started</a>
-          </Button>
+          <HeaderAuth />
         </div>
       </header>
 
@@ -364,4 +353,3 @@ export default function Home() {
     </main>
   );
 }
-

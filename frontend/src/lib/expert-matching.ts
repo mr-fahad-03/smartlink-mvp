@@ -1,6 +1,6 @@
 import type { AssessmentSubmission, Expert, QuizCategory } from "@/types";
 
-export type MatchTier = "Best Match" | "Great Match" | "Good Match";
+export type MatchTier = "Best Match" | "Strong Match" | "Good Match";
 
 export interface ExpertMarketplaceProfile {
   locationLabel: string;
@@ -277,11 +277,11 @@ export function getAvailability(submittedAtIso: string, availableAtIso: string) 
 }
 
 export function getMatchTier(totalScore: number): MatchTier {
-  if (totalScore >= 85) {
+  if (totalScore >= 90) {
     return "Best Match";
   }
-  if (totalScore >= 72) {
-    return "Great Match";
+  if (totalScore >= 80) {
+    return "Strong Match";
   }
   return "Good Match";
 }
@@ -290,8 +290,8 @@ export function getMatchTierTone(tier: MatchTier) {
   if (tier === "Best Match") {
     return "bg-[#EEF3FF] text-[#356AF6]";
   }
-  if (tier === "Great Match") {
-    return "bg-[#EBF8EF] text-[#15803D]";
+  if (tier === "Strong Match") {
+    return "bg-[#E8F7EE] text-[#0F766E]";
   }
   return "bg-[#FFF4D6] text-[#B7791F]";
 }

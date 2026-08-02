@@ -5,6 +5,14 @@ const { trackMetricEvent } = require("./metrics.service");
 
 async function createLeadSubmission(leadData) {
   const supabase = requireSupabase();
+  
+  if (leadData.assessmentId) {
+    const existing = await findLeadByAssessmentId(leadData.assessmentId);
+    if (existing) {
+      return existing;
+    }
+  }
+
   const qualification = deriveLeadQualityAndPrice(leadData);
 
   const payload = {

@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   Briefcase,
   Clock3,
   Handshake,
+  Lock,
   MapPin,
   Plus,
   Search,
@@ -175,11 +178,13 @@ function buildAdminAnalyticsSnapshot(
 }
 
 export default function ExpertMatchPage() {
+  const router = useRouter();
   const [submission, setSubmission] = useState<AssessmentSubmission | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [selectedServices, setSelectedServices] = useState<Record<string, SelectedServiceItem>>({});
   const [requestSent, setRequestSent] = useState(false);
   const [requestTimestamp, setRequestTimestamp] = useState<string | null>(null);
+  const [showAuthRequiredModal, setShowAuthRequiredModal] = useState(false);
   const [hasLoggedView, setHasLoggedView] = useState(false);
   const [backendRanked, setBackendRanked] = useState<{
     ranked: ReturnType<typeof rankExpertsForSubmission>;
@@ -584,6 +589,28 @@ export default function ExpertMatchPage() {
         },
       ];
     });
+
+    const isLoggedIn = typeof window !== "undefined" && Boolean(localStorage.getItem("smartlink_access_token"));
+    if (!isLoggedIn) {
+      localStorage.setItem("smartlink_pending_intro_request", JSON.stringify({
+        submission,
+        requests: nextRequests.map((request) => ({
+          expertId: request.expertId,
+          expertName: request.expertName,
+          serviceIds: request.serviceIds,
+          serviceNames: request.serviceNames,
+          category: request.category,
+          urgencyLevel: request.urgencyLevel,
+          budgetPreference: request.budgetPreference,
+          billable: request.billable,
+          leadTier: request.leadTier,
+          expertTier: request.expertTier,
+        })),
+      }));
+
+      setShowAuthRequiredModal(true);
+      return;
+    }
 
     const updated = updateAssessmentSubmission((current) => {
       const introductionRequests = [...(current.introductionRequests ?? []), ...nextRequests];
@@ -1124,6 +1151,62 @@ export default function ExpertMatchPage() {
           </aside>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showAuthRequiredModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAuthRequiredModal(false)}
+              className="absolute inset-0 bg-[#0F172A]/40 backdrop-blur-sm"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="relative w-full max-w-md overflow-hidden rounded-[32px] border border-[#D9E3F3] bg-white p-6 shadow-[0_32px_64px_rgba(15,23,42,0.12)]"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF3FF] text-[#356AF6]">
+                  <Lock className="h-6 w-6" />
+                </div>
+
+                <h3 className="mt-4 text-xl font-bold tracking-tight text-[#111827]">
+                  Account Required
+                </h3>
+
+                <p className="mt-3 text-sm leading-6 text-[#5D6B85]">
+                  You need to sign in or create an account to request introductions. We have securely saved your requests and will submit them automatically once you verify/sign in!
+                </p>
+
+                <div className="mt-6 flex w-full flex-col gap-2.5">
+                  <Button
+                    onClick={() => {
+                      setShowAuthRequiredModal(false);
+                      router.push("/login?redirect=dashboard");
+                    }}
+                    className="h-11 w-full rounded-xl bg-[#356AF6] font-semibold text-white hover:bg-[#2C59D8]"
+                  >
+                    Sign In / Register
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAuthRequiredModal(false)}
+                    className="h-11 w-full rounded-xl border-[#D9E3F3] text-sm font-semibold text-[#111827] hover:bg-[#F7FAFF]"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

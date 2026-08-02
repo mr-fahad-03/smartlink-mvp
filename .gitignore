@@ -35,3 +35,5 @@ coverage/
 
 frontend/_git_backup_hidden/
 
+# Uploads
+backend/uploads/

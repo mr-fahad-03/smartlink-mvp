@@ -35,7 +35,7 @@ export default function ExpertDashboardLayout({ children }: { children: React.Re
   const pathname = usePathname();
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 pt-16">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
       <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 hidden md:flex md:flex-col shrink-0 overflow-hidden">
         <div className="p-6 border-b border-gray-100 dark:border-gray-700">

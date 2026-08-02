@@ -22,7 +22,7 @@ import {
 
 import { InnerNav } from "@/components/navigation/inner-nav";
 import { Button } from "@/components/ui/button";
-import { getAdminAccessToken, getSessionMe } from "@/lib/admin-session";
+import { getAdminAccessToken, getSessionMe, clearAdminSession } from "@/lib/admin-session";
 import { getMyExpertApplicationStatus, submitExpertApplicationToBackend, uploadExpertDocumentToBackend } from "@/lib/backend-api";
 import { canUseExpertSection } from "@/lib/role-guard";
 
@@ -128,6 +128,7 @@ function ExpertApplyContent() {
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({});
+  const [isClientUser, setIsClientUser] = useState(false);
   const strength = useMemo(() => calcStrength(draft), [draft]);
 
   useEffect(() => {
@@ -136,7 +137,7 @@ function ExpertApplyContent() {
       .then(async (session) => {
         if (!active) return;
         if (!canUseExpertSection(session.role)) {
-          router.replace("/login");
+          setIsClientUser(true);
           return;
         }
 
@@ -243,7 +244,28 @@ function ExpertApplyContent() {
       setSubmitSuccess("Application submitted for review.");
       router.push("/expert-application-status?submitted=1");
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Failed to submit application.");
+      const rawMessage = error instanceof Error ? error.message : "Failed to submit application.";
+      let friendlyMessage = rawMessage;
+      try {
+        const parsed = JSON.parse(rawMessage);
+        if (parsed.message && parsed.details && parsed.details.fieldErrors) {
+          const fieldErrors = parsed.details.fieldErrors;
+          const errorsList = Object.entries(fieldErrors)
+            .map(([field, msgs]: any) => {
+              const fieldName = field
+                .replace(/([A-Z])/g, " $1")
+                .replace(/^./, (str) => str.toUpperCase());
+              return `• ${fieldName}: ${msgs.join(", ")}`;
+            })
+            .join("\n");
+          friendlyMessage = `${parsed.message}\n\n${errorsList}`;
+        } else if (parsed.message) {
+          friendlyMessage = parsed.message;
+        }
+      } catch (_) {
+        // Fall back to original message
+      }
+      setSubmitError(friendlyMessage);
     } finally {
       setSubmitting(false);
     }
@@ -256,6 +278,40 @@ function ExpertApplyContent() {
     "h-10 w-full rounded-xl border border-[#D9E3F3] bg-white px-3.5 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15 placeholder:text-[#A0AECB]";
 
   const stepPercent = Math.round(((currentStep + 1) / FORM_STEPS.length) * 100);
+
+  if (isClientUser) {
+    return (
+      <main className="sl-page min-h-screen px-6 py-10 bg-slate-50">
+        <div className="mx-auto w-full max-w-xl text-center space-y-6 mt-16 bg-white p-8 rounded-3xl shadow-md border border-slate-200">
+          <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-600">
+            <Lock className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800">Account Type Conflict</h2>
+          <p className="text-slate-600 text-sm leading-relaxed">
+            You are currently signed in with a <strong>Client</strong> account. Client accounts cannot submit expert applications. 
+            If you want to apply as an Expert, please log out first and create a new expert account.
+          </p>
+          <div className="pt-4 flex flex-col gap-3">
+            <button
+              onClick={() => {
+                clearAdminSession();
+                window.location.href = "/login?mode=signup&role=expert";
+              }}
+              className="py-2.5 px-6 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-md transition duration-200"
+            >
+              Log Out and Create Expert Account
+            </button>
+            <Link
+              href="/dashboard"
+              className="py-2.5 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition duration-200 flex items-center justify-center"
+            >
+              Go to Client Dashboard
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="sl-page min-h-screen bg-[#F7F9FD] text-[#111827]">
@@ -604,7 +660,7 @@ function ExpertApplyContent() {
                   </div>
                   {savedMsg && <span className="w-full text-xs text-[#16A34A]">{savedMsg}</span>}
                   {submitSuccess && <span className="w-full text-xs text-[#16A34A]">{submitSuccess}</span>}
-                  {submitError && <span className="w-full text-xs text-rose-600">{submitError}</span>}
+                  {submitError && <span className="w-full text-xs text-rose-600 whitespace-pre-line">{submitError}</span>}
                 </div>
               </section>
             )}

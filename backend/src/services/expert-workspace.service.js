@@ -3,18 +3,31 @@ const { requireSupabase } = require("../utils/supabase-guard");
 async function getDashboardOverview(userId) {
   const supabase = requireSupabase();
 
+  // Resolve expert_id from expert_user_links first
+  const { data: link, error: linkError } = await supabase
+    .from("expert_user_links")
+    .select("expert_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (linkError) {
+    throw linkError;
+  }
+
+  const expertId = link?.expert_id || userId;
+
   // 1. Fetch expert details
   const { data: expert } = await supabase
     .from("experts")
     .select("*")
-    .eq("expert_id", userId)
+    .eq("expert_id", expertId)
     .single();
 
   // 2. Fetch introduction requests (Opportunities & Clients)
   const { data: requests } = await supabase
     .from("introduction_requests")
     .select("*")
-    .eq("expert_id", userId);
+    .eq("expert_id", expertId);
 
   const reqs = requests || [];
   
@@ -35,7 +48,7 @@ async function getDashboardOverview(userId) {
   const { data: impressions } = await supabase
     .from("expert_impression_events")
     .select("*")
-    .eq("expert_id", userId);
+    .eq("expert_id", expertId);
     
   const profileViews = impressions ? impressions.length : 0;
   
@@ -57,7 +70,7 @@ async function getDashboardOverview(userId) {
   const { data: reviewsData } = await supabase
     .from("expert_reviews")
     .select("*")
-    .eq("expert_id", userId)
+    .eq("expert_id", expertId)
     .order("created_at", { ascending: false });
 
   const reviews = (reviewsData || []).map(r => ({
@@ -125,10 +138,19 @@ async function getDashboardOverview(userId) {
 
 async function updateExpertProfile(userId, updates) {
   const supabase = requireSupabase();
+
+  const { data: link } = await supabase
+    .from("expert_user_links")
+    .select("expert_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const expertId = link?.expert_id || userId;
+
   const { data, error } = await supabase
     .from("experts")
     .update(updates)
-    .eq("expert_id", userId)
+    .eq("expert_id", expertId)
     .select()
     .single();
     
@@ -136,8 +158,17 @@ async function updateExpertProfile(userId, updates) {
   return data;
 }
 
-async function updateOpportunityStatus(expertId, opportunityId, status) {
+async function updateOpportunityStatus(userId, opportunityId, status) {
   const supabase = requireSupabase();
+
+  const { data: link } = await supabase
+    .from("expert_user_links")
+    .select("expert_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const expertId = link?.expert_id || userId;
+
   const { data, error } = await supabase
     .from("introduction_requests")
     .update({ status })

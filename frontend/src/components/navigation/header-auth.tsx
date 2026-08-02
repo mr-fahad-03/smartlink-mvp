@@ -33,14 +33,35 @@ export function HeaderAuth() {
         >
           <Link href="/expert-dashboard">My Dashboard</Link>
         </Button>
-      ) : (
+      ) : role === "client" ? (
         <Button
           asChild
           size="sm"
           className="h-9 rounded-xl bg-[#356AF6] px-4 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(53,106,246,0.22)] hover:bg-[#2C59D8]"
         >
-          <a href="#who-is-this-for">Get Started</a>
+          <Link href="/dashboard">My Dashboard</Link>
         </Button>
+      ) : ["super_admin", "admin", "moderator", "auditor"].includes(role || "") ? (
+        <Button
+          asChild
+          size="sm"
+          className="h-9 rounded-xl bg-[#356AF6] px-4 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(53,106,246,0.22)] hover:bg-[#2C59D8]"
+        >
+          <Link href="/admin">Admin Dashboard</Link>
+        </Button>
+      ) : (
+        <div className="flex items-center gap-4">
+          <Link href="/login" className="text-sm font-semibold text-[#5D6B85] hover:text-[#111827] transition-colors">
+            Sign In
+          </Link>
+          <Button
+            asChild
+            size="sm"
+            className="h-9 rounded-xl bg-[#356AF6] px-4 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(53,106,246,0.22)] hover:bg-[#2C59D8]"
+          >
+            <a href="#who-is-this-for">Get Started</a>
+          </Button>
+        </div>
       )}
     </div>
   );

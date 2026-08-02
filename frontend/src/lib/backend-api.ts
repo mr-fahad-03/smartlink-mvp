@@ -276,3 +276,23 @@ export async function getClientDashboardData(token: string) {
   );
   return response.data;
 }
+
+export async function submitClientReviewToBackend(
+  payload: {
+    leadId: string;
+    expertId: string;
+    publicStarRating: number;
+    publicReviewComment?: string;
+    wouldRecommend?: boolean;
+    matchHelpfulRating?: string;
+    feedbackReason?: string[];
+  },
+  token: string,
+) {
+  return postJsonWithAuth<{ success: boolean; data: any }>(
+    "/client/reviews",
+    payload,
+    token,
+  );
+}
+

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getMatchTierTone, type MatchTier } from "@/lib/expert-matching";
@@ -197,10 +198,11 @@ export function ExpertMatchCard({
             <p className="text-xs text-[#5D6B85]">Within your preferred budget.</p>
           </div>
           <Button
+            asChild
             size="sm"
             className="rounded-xl bg-[#356AF6] px-4 text-white hover:bg-[#2C59D8]"
           >
-            Request Introduction
+            <Link href="/expert-match">Request Introduction</Link>
           </Button>
         </div>
       </div>

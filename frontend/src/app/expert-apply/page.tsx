@@ -254,7 +254,7 @@ function ExpertApplyContent() {
             .map(([field, msgs]: any) => {
               const fieldName = field
                 .replace(/([A-Z])/g, " $1")
-                .replace(/^./, (str) => str.toUpperCase());
+                .replace(/^./, (str: string) => str.toUpperCase());
               return `• ${fieldName}: ${msgs.join(", ")}`;
             })
             .join("\n");

@@ -86,7 +86,7 @@ export default function ClientProjectsPage() {
       priorityActions: lead.metadata?.priorityActions || [],
       diagnosticProfile: lead.metadata?.diagnosticProfile || null,
       responses: lead.metadata?.responses || [],
-    };
+    } as unknown as AssessmentSubmission;
 
     saveAssessmentSubmission(submission);
     router.push("/results");

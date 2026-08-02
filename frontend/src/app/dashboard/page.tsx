@@ -55,6 +55,8 @@ export default function ClientDashboardOverview() {
                       merged.push({
                         id: `intro-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                         assessmentId: pending.submission.assessmentId,
+                        leadName: pending.submission.lead?.fullName || "Client",
+                        leadEmail: pending.submission.lead?.workEmail || "",
                         expertId: req.expertId,
                         expertName: req.expertName,
                         requestedAt: new Date().toISOString(),

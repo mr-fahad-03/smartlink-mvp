@@ -34,6 +34,7 @@ export type RegisterResult = {
   role: "expert" | "client";
   emailVerified: boolean;
   verificationRequired: boolean;
+  verificationLink?: string;
 };
 
 function getStoredRole() {
@@ -164,10 +165,20 @@ export async function registerUser(payload: {
   return response.data;
 }
 
-export async function resendVerification(email: string) {
-  const response = await requestJson<AuthApiResponse<unknown>>("/auth/email/resend-verification", {
+export type ResendVerificationResult = {
+  success: boolean;
+  skipped?: boolean;
+  verificationLink?: string;
+  emailServiceConfigured?: boolean;
+};
+
+export async function resendVerification(email: string, redirectUrl?: string) {
+  const response = await requestJson<AuthApiResponse<ResendVerificationResult>>("/auth/email/resend-verification", {
     method: "POST",
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({
+      email,
+      redirectUrl: redirectUrl || (typeof window !== "undefined" ? window.location.origin : undefined),
+    }),
   });
   return response.data;
 }

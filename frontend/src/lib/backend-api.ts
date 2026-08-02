@@ -296,3 +296,11 @@ export async function submitClientReviewToBackend(
   );
 }
 
+export async function updateExpertProfile(payload: Record<string, any>, token: string) {
+  return postJsonWithAuth<{ success: boolean; data: any }>(
+    "/experts/me",
+    payload,
+    token,
+  );
+}
+

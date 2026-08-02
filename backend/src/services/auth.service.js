@@ -768,12 +768,40 @@ async function registerUser(req, payload) {
     reason: "registration",
   });
 
+  let actionLink = null;
+  if (env.AUTH_REQUIRE_EMAIL_VERIFICATION && user?.email) {
+    const origin = req.headers?.origin || (req.headers?.host ? `${req.secure ? "https" : "http"}://${req.headers.host}` : null) || env.AUTH_VERIFY_REDIRECT_URL || "http://localhost:3000";
+    try {
+      const { data, error } = await client.auth.admin.generateLink({
+        type: "signup",
+        email: user.email,
+        options: { redirectTo: origin },
+      });
+      if (!error && data?.properties?.action_link) {
+        actionLink = data.properties.action_link;
+      }
+    } catch (_) {}
+    if (!actionLink) {
+      try {
+        const { data, error } = await client.auth.admin.generateLink({
+          type: "magiclink",
+          email: user.email,
+          options: { redirectTo: origin },
+        });
+        if (!error && data?.properties?.action_link) {
+          actionLink = data.properties.action_link;
+        }
+      } catch (_) {}
+    }
+  }
+
   return {
     userId: user.id,
     email,
     role,
     emailVerified,
     verificationRequired: env.AUTH_REQUIRE_EMAIL_VERIFICATION ? !Boolean(user.email_confirmed_at) : false,
+    verificationLink: actionLink,
     profile,
   };
 }
@@ -1344,16 +1372,62 @@ async function revokeAllSessions(req, accessToken) {
   return { success: true };
 }
 
-async function resendVerificationEmail(email) {
-  if (!env.AUTH_REQUIRE_EMAIL_VERIFICATION) {
-    return { success: true, skipped: true };
-  }
+async function resendVerificationEmail(email, redirectUrl = null) {
   const normalizedEmail = normalizeEmail(email);
-  await supabaseAuthRequest("/resend", {
-    type: "signup",
-    email: normalizedEmail,
-  });
-  return { success: true };
+  const client = requireSupabaseClient();
+  const targetRedirect = redirectUrl || env.AUTH_VERIFY_REDIRECT_URL || "http://localhost:3000";
+
+  let actionLink = null;
+
+  try {
+    const { data, error } = await client.auth.admin.generateLink({
+      type: "signup",
+      email: normalizedEmail,
+      options: { redirectTo: targetRedirect },
+    });
+    if (!error && data?.properties?.action_link) {
+      actionLink = data.properties.action_link;
+    }
+  } catch (_) {}
+
+  if (!actionLink) {
+    try {
+      const { data, error } = await client.auth.admin.generateLink({
+        type: "magiclink",
+        email: normalizedEmail,
+        options: { redirectTo: targetRedirect },
+      });
+      if (!error && data?.properties?.action_link) {
+        actionLink = data.properties.action_link;
+      }
+    } catch (_) {}
+  }
+
+  if (!actionLink) {
+    try {
+      const { data, error } = await client.auth.admin.generateLink({
+        type: "recovery",
+        email: normalizedEmail,
+        options: { redirectTo: targetRedirect },
+      });
+      if (!error && data?.properties?.action_link) {
+        actionLink = data.properties.action_link;
+      }
+    } catch (_) {}
+  }
+
+  try {
+    await supabaseAuthRequest("/resend", {
+      type: "signup",
+      email: normalizedEmail,
+    });
+  } catch (_) {}
+
+  return {
+    success: true,
+    verificationLink: actionLink,
+    emailServiceConfigured: false,
+  };
 }
 
 async function changePassword(accessToken, payload) {

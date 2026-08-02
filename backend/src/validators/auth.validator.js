@@ -55,6 +55,7 @@ const mfaEmailVerifySchema = z.object({
 
 const resendVerificationSchema = z.object({
   email: emailSchema,
+  redirectUrl: z.string().optional(),
 });
 
 const refreshSessionSchema = z.object({

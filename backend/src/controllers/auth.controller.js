@@ -154,7 +154,8 @@ async function postMfaTotpDisable(req, res) {
 
 async function postEmailResendVerification(req, res) {
   const payload = parseWithSchema(resendVerificationSchema, req.body, "Invalid resend verification payload.");
-  const data = await resendVerificationEmail(payload.email);
+  const origin = payload.redirectUrl || req.headers.origin || (req.headers.host ? `${req.secure ? "https" : "http"}://${req.headers.host}` : null);
+  const data = await resendVerificationEmail(payload.email, origin);
   return res.json({ success: true, data });
 }
 

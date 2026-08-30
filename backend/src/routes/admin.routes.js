@@ -34,6 +34,8 @@ const {
   getUserSearch,
   getExpertSearch,
   getLeadSearch,
+  patchReviewExpertPackage,
+  patchReviewExpertIntro,
 } = require("../controllers/admin.controller");
 const { ADMIN_PERMISSIONS } = require("../constants/admin-rbac");
 const { requireAdminAuth, requirePermission } = require("../middleware/admin-jwt-auth");
@@ -57,6 +59,8 @@ adminRouter.get("/experts/search", requirePermission(ADMIN_PERMISSIONS.EXPERT_VI
 
 adminRouter.patch("/experts/:id/state", requirePermission(ADMIN_PERMISSIONS.EXPERT_SUSPEND), asyncHandler(patchExpertState));
 adminRouter.patch("/experts/:id/boost", requirePermission(ADMIN_PERMISSIONS.EXPERT_SUSPEND), asyncHandler(patchExpertBoost));
+adminRouter.patch("/expert-packages/:expertId/:packageId", requirePermission(ADMIN_PERMISSIONS.EXPERT_VIEW), asyncHandler(patchReviewExpertPackage));
+adminRouter.patch("/expert-intro/:expertId", requirePermission(ADMIN_PERMISSIONS.EXPERT_VIEW), asyncHandler(patchReviewExpertIntro));
 
 adminRouter.get("/ranking-config", requirePermission(ADMIN_PERMISSIONS.MATCHING_SETTINGS_MANAGE), asyncHandler(getRankingConfig));
 adminRouter.patch("/ranking-config", requirePermission(ADMIN_PERMISSIONS.MATCHING_SETTINGS_MANAGE), asyncHandler(patchRankingConfig));

@@ -45,14 +45,23 @@ function getSupabaseAnonKey() {
 }
 
 async function supabaseAuthRequest(path, payload) {
-  const response = await fetch(`${getSupabaseAuthBaseUrl()}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: getSupabaseAnonKey(),
-    },
-    body: JSON.stringify(payload || {}),
-  });
+  let response;
+  try {
+    response = await fetch(`${getSupabaseAuthBaseUrl()}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: getSupabaseAnonKey(),
+      },
+      body: JSON.stringify(payload || {}),
+    });
+  } catch (err) {
+    throw new AppError(
+      "Database service is unreachable. Please verify SUPABASE_URL and network connectivity in backend/.env.",
+      503,
+      { code: "supabase_unreachable", raw: err.message }
+    );
+  }
 
   const bodyText = await response.text();
   let body;
@@ -194,20 +203,24 @@ async function updateSecurityState(userId, patch) {
 }
 
 async function appendLoginAttempt(row) {
-  const client = requireSupabaseClient();
-  const { error } = await client.from("auth_login_attempts").insert({
-    email: normalizeEmail(row.email),
-    user_id: row.userId || null,
-    role: row.role || null,
-    ip_address: row.ipAddress || null,
-    user_agent: row.userAgent || null,
-    success: Boolean(row.success),
-    reason: row.reason || null,
-    created_at: new Date().toISOString(),
-  });
+  try {
+    const client = requireSupabaseClient();
+    const { error } = await client.from("auth_login_attempts").insert({
+      email: normalizeEmail(row.email),
+      user_id: row.userId || null,
+      role: row.role || null,
+      ip_address: row.ipAddress || null,
+      user_agent: row.userAgent || null,
+      success: Boolean(row.success),
+      reason: row.reason || null,
+      created_at: new Date().toISOString(),
+    });
 
-  if (error) {
-    throw new AppError("Failed to write login attempt.", 500, { code: "login_attempt_write_failed", raw: error.message });
+    if (error) {
+      console.warn("Failed to write login attempt audit log:", error.message);
+    }
+  } catch (err) {
+    console.warn("Failed to write login attempt audit log:", err.message);
   }
 }
 
@@ -615,6 +628,12 @@ async function registerUser(req, payload) {
     .maybeSingle();
 
   if (existingProfileError) {
+    if (existingProfileError.message?.toLowerCase().includes("fetch failed") || existingProfileError.code === "ENOTFOUND") {
+      throw new AppError("Database service is unreachable. Please verify SUPABASE_URL in backend/.env.", 503, {
+        code: "supabase_unreachable",
+        raw: existingProfileError.message,
+      });
+    }
     if (existingProfileError.code === "PGRST205") {
       throw new AppError("Auth schema is missing. Run backend/sql/supabase_schema.sql in Supabase SQL Editor.", 500, {
         code: "auth_schema_missing",
@@ -655,17 +674,60 @@ async function registerUser(req, payload) {
   }
 
   let user = null;
-  if (env.AUTH_REQUIRE_EMAIL_VERIFICATION) {
-    const signup = await supabaseAuthRequest("/signup", {
+  let created = null;
+  let createError = null;
+
+  try {
+    const res = await client.auth.admin.createUser({
       email,
       password: payload.password,
-      data: {
+      email_confirm: !env.AUTH_REQUIRE_EMAIL_VERIFICATION,
+      user_metadata: {
         full_name: payload.fullName || null,
         app_role: role,
       },
     });
+    created = res?.data || null;
+    createError = res?.error || null;
+  } catch (err) {
+    createError = err;
+  }
 
-    user = signup?.user || null;
+  if (created?.user?.id) {
+    user = created.user;
+  } else {
+    // If admin creation failed because user already exists
+    const errMessage = String(createError?.message || "").toLowerCase();
+    if (errMessage.includes("already") || errMessage.includes("exists") || errMessage.includes("registered")) {
+      throw new AppError("Account already exists. Please sign in.", 409, { code: "account_exists" });
+    }
+
+    // Fallback to public signup endpoint
+    try {
+      const signup = await supabaseAuthRequest("/signup", {
+        email,
+        password: payload.password,
+        data: {
+          full_name: payload.fullName || null,
+          app_role: role,
+        },
+      });
+      user = signup?.user || null;
+    } catch (signupErr) {
+      const signupMsg = String(signupErr?.message || "").toLowerCase();
+      const signupRaw = signupErr?.raw?.error_code || signupErr?.raw?.code || "";
+      if (signupMsg.includes("rate limit") || signupMsg.includes("too many") || signupRaw === "over_email_send_rate_limit") {
+        throw new AppError("Too many signup attempts right now. Please wait a few minutes or adjust Rate Limits in Supabase Dashboard > Authentication > Rate Limits.", 429, {
+          code: "over_email_send_rate_limit",
+          raw: signupErr.message,
+        });
+      }
+      if (signupMsg.includes("already") || signupMsg.includes("exists") || signupMsg.includes("registered")) {
+        throw new AppError("Account already exists. Please sign in.", 409, { code: "account_exists" });
+      }
+      throw signupErr;
+    }
+
     if (!user?.id) {
       const existingAuthUser = await findAuthUserByEmail(email);
       if (existingAuthUser?.id) {
@@ -679,26 +741,6 @@ async function registerUser(req, payload) {
         });
       }
     }
-  } else {
-    const { data: created, error: createError } = await client.auth.admin.createUser({
-      email,
-      password: payload.password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: payload.fullName || null,
-        app_role: role,
-      },
-    });
-
-    if (createError || !created?.user?.id) {
-      const rawMessage = createError?.message || "No user id returned.";
-      const lowerMessage = String(rawMessage).toLowerCase();
-      if (lowerMessage.includes("already") || lowerMessage.includes("exists") || lowerMessage.includes("registered")) {
-        throw new AppError("Account already exists. Please sign in.", 409, { code: "account_exists" });
-      }
-      throw new AppError("Registration failed.", 500, { code: "registration_failed", raw: rawMessage });
-    }
-    user = created.user;
   }
 
   const emailVerified = env.AUTH_REQUIRE_EMAIL_VERIFICATION ? Boolean(user.email_confirmed_at) : true;
@@ -869,7 +911,7 @@ async function loginWithPassword(req, payload) {
       }
 
       if (message.includes("email not confirmed")) {
-        throw new AppError("Please verify your email first.", 403, { code: "email_unverified" });
+        throw new AppError("Please verify your email first (or turn OFF 'Confirm email' in Supabase Dashboard > Authentication > Email for testing).", 403, { code: "email_unverified" });
       }
       throw new AppError("Invalid email or password.", 401, { code: "invalid_credentials" });
     }
@@ -1375,7 +1417,36 @@ async function revokeAllSessions(req, accessToken) {
 async function resendVerificationEmail(email, redirectUrl = null) {
   const normalizedEmail = normalizeEmail(email);
   const client = requireSupabaseClient();
-  const targetRedirect = redirectUrl || env.AUTH_VERIFY_REDIRECT_URL || "http://localhost:3000";
+  let targetRedirect = redirectUrl || env.AUTH_VERIFY_REDIRECT_URL || "http://localhost:3000/login?verified=true";
+
+  if (targetRedirect.endsWith("http://localhost:3000") || targetRedirect.endsWith("http://localhost:3000/")) {
+    targetRedirect = `${targetRedirect.replace(/\/$/, "")}/login?verified=true`;
+  }
+
+  const authUser = await findAuthUserByEmail(normalizedEmail);
+  const { data: profile } = await client
+    .from("user_profiles")
+    .select("email_verified")
+    .eq("email", normalizedEmail)
+    .maybeSingle();
+
+  const isVerified = Boolean(authUser?.email_confirmed_at) || Boolean(profile?.email_verified);
+
+  if (isVerified) {
+    if (profile && !profile.email_verified) {
+      await client
+        .from("user_profiles")
+        .update({ email_verified: true, updated_at: new Date().toISOString() })
+        .eq("email", normalizedEmail);
+    }
+    return {
+      success: true,
+      alreadyVerified: true,
+      message: "Account is already verified. You can sign in now.",
+      verificationLink: null,
+      emailServiceConfigured: true,
+    };
+  }
 
   let actionLink = null;
 
@@ -1425,6 +1496,7 @@ async function resendVerificationEmail(email, redirectUrl = null) {
 
   return {
     success: true,
+    alreadyVerified: false,
     verificationLink: actionLink,
     emailServiceConfigured: false,
   };

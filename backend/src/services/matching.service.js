@@ -543,16 +543,22 @@ function mapCandidatesForResponse(candidates, config) {
 
 function mapExpertForFrontend(expert) {
   const tier = normalizeText(expert.tier || (expert.is_featured ? "featured" : expert.is_verified ? "verified" : "registered"));
+  const snapshot = expert.metadata?.application_snapshot || {};
+  const specialties = (Array.isArray(expert.category_tags) && expert.category_tags.length > 0)
+    ? expert.category_tags
+    : (snapshot.mainSpecialization ? [snapshot.mainSpecialization] : ["General Support"]);
 
   return {
     id: expert.expert_id,
-    fullName: expert.name,
-    role: expert.role || "Expert Advisor",
-    organization: expert.organization || "SmartLink Expert Network",
+    fullName: expert.name && expert.name !== "Expert User" ? expert.name : (snapshot.fullName || expert.name || "Expert Advisor"),
+    role: expert.role && expert.role !== expert.name ? expert.role : (snapshot.professionalTitle || "Expert Advisor"),
+    organization: expert.organization && expert.organization !== expert.name ? expert.organization : (snapshot.businessName || "SmartLink Expert Network"),
     yearsExperience: Number(expert.years_experience || 5),
-    specialties: expert.category_tags || [],
-    rating: Number(expert.rating || 4.5),
-    hourlyRateUsd: Number(expert.hourly_rate_usd || 150),
+    specialties,
+    rating: Number(expert.rating || 4.8),
+    hourlyRateUsd: Number(expert.hourly_rate_usd || snapshot.hourlyRate || 150),
+    location: expert.location || snapshot.primaryLocation || "Bahamas",
+    shortBio: snapshot.shortBio || expert.role || "",
     nextAvailableAt: expert.next_available_at || new Date().toISOString(),
     visibilityLevel: tier === "featured" ? "priority" : tier === "verified" ? "featured" : "basic",
     matchingVisibility: expert.matching_visibility === "priority-only" ? "priority-only" : "visible",
@@ -586,7 +592,7 @@ async function recommendExperts(input) {
   const sortComparator = buildFinalSortComparator(input.urgencyPreference);
   const cooldownThreshold = Number(config.cooldown_threshold || 5);
 
-  const candidates = experts
+  let candidates = experts
     .map((expert) => {
       const expertId = expert.expert_id;
       const isLockedInOverride = Boolean(activeOverride?.ordered_expert_ids?.includes(expertId));
@@ -631,6 +637,44 @@ async function recommendExperts(input) {
     })
     .filter(Boolean)
     .sort(sortComparator);
+
+  if (candidates.length === 0 && experts.length > 0) {
+    candidates = experts
+      .map((expert) => {
+        if (expert.matching_visibility === "hidden") return null;
+        const category = getCategoryScore(expert, selectedCategory, config);
+        const urgency = getUrgencyScore(expert, input.urgencyPreference, config);
+        const budget = getBudgetScore(expert, input.budgetPreference, config);
+        const reputation = getReputationScore(expert, config);
+        const location = getLocationScore(expert, input.location, config);
+        const baseScore = category.score + urgency.score + budget.score + reputation.score + location.score;
+
+        const fairnessBoost = getFairnessBoost(expert, avgImpressions, config);
+        const feedbackStats = feedbackStatsMap.get(expert.expert_id) || {};
+        const performanceScore = getPerformanceScore(expert, feedbackStats);
+        const priorityBoost = getPriorityBoost(expert, config);
+        const cooldownAdjustment = getCooldownAdjustment(expert, avgImpressions, config);
+        const finalScore = clamp(Math.max(60, baseScore + fairnessBoost + performanceScore + priorityBoost + cooldownAdjustment), 0, 100);
+
+        const breakdown = { category, urgency, budget, reputation, location };
+        return {
+          expert,
+          baseScore,
+          fairnessBoost,
+          performanceScore,
+          priorityBoost,
+          cooldownAdjustment,
+          finalScore,
+          matchBand: toMatchBand(finalScore),
+          slotLabel: null,
+          badges: [],
+          breakdown,
+          explanation: buildMatchExplanation(selectedCategory, input, breakdown),
+        };
+      })
+      .filter(Boolean)
+      .sort(sortComparator);
+  }
 
   if (activeOverride && Array.isArray(activeOverride.ordered_expert_ids) && activeOverride.ordered_expert_ids.length > 0) {
     const candidateById = new Map(candidates.map((candidate) => [candidate.expert.expert_id, candidate]));

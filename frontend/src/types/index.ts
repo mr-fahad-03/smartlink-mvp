@@ -362,6 +362,7 @@ export interface ExpertApplicationRecord {
   expert_category_tags?: string[];
   expert_service_tags?: string[];
   expert_profile_metadata?: Record<string, unknown>;
+  metadata?: Record<string, any>;
   status: "under_review" | "needs_info" | "approved" | "rejected" | "flagged";
   submitted_by_user_id?: string | null;
   reviewed_by_user_id?: string | null;

@@ -3,9 +3,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
+import {
+  ChevronRight,
+  Inbox,
+  LayoutDashboard,
+  LogOut,
+  ScrollText,
+  ShieldCheck,
+  SlidersHorizontal,
+  UserCog,
+  Users,
+} from "lucide-react";
 
-import { InnerNav } from "@/components/navigation/inner-nav";
 import { Button } from "@/components/ui/button";
 import {
   assignAdminRole,
@@ -41,6 +52,8 @@ import {
   updateExpertBoost,
   updateExpertApplication,
   updateExpertState,
+  reviewAdminExpertPackage,
+  reviewAdminExpertIntro,
 } from "@/lib/admin-api";
 import { clearAdminSession, getAdminAccessToken, logoutCurrentSession } from "@/lib/admin-session";
 import { canAccessAdminArea } from "@/lib/role-guard";
@@ -156,11 +169,7 @@ export default function AdminPage() {
   const [activeExpertsTab, setActiveExpertsTab] = useState<ExpertsSubTabKey>("directory");
   const [activeLeadsTab, setActiveLeadsTab] = useState<LeadsSubTabKey>("assignment");
   const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsSubTabKey>("matching");
-  const [expandedNav, setExpandedNav] = useState<Partial<Record<TabKey, boolean>>>({
-    experts: true,
-    leads: true,
-    settings: true,
-  });
+  const [expandedNav, setExpandedNav] = useState<Partial<Record<TabKey, boolean>>>({});
 
   const [me, setMe] = useState<AdminMe | null>(null);
   const [roles, setRoles] = useState<AdminUserRoleRecord[]>([]);
@@ -229,17 +238,18 @@ export default function AdminPage() {
 
   const tabs = useMemo(
     () => [
-      { key: "overview" as const, label: "Overview", helper: "Quick health and next actions.", enabled: true },
-      { key: "experts" as const, label: "Experts", helper: "Review and manage expert availability.", enabled: can(me, "expert.view") },
-      { key: "leads" as const, label: "Leads", helper: "Route leads to the right expert.", enabled: can(me, "lead.assign") || can(me, "report.view") },
-      { key: "team" as const, label: "Team", helper: "Manage admin roles by email.", enabled: can(me, "user.role.manage") },
+      { key: "overview" as const, label: "Overview", helper: "Quick health and next actions.", icon: LayoutDashboard, enabled: true },
+      { key: "experts" as const, label: "Experts", helper: "Review and manage expert availability.", icon: Users, enabled: can(me, "expert.view") },
+      { key: "leads" as const, label: "Leads", helper: "Route leads to the right expert.", icon: Inbox, enabled: can(me, "lead.assign") || can(me, "report.view") },
+      { key: "team" as const, label: "Team", helper: "Manage admin roles by email.", icon: UserCog, enabled: can(me, "user.role.manage") },
       {
         key: "settings" as const,
         label: "Settings",
         helper: "Control pricing and match strategy.",
+        icon: SlidersHorizontal,
         enabled: can(me, "settings.pricing.manage") || can(me, "settings.matching.manage") || can(me, "settings.fairness.manage"),
       },
-      { key: "activity" as const, label: "Activity", helper: "See important actions and security events.", enabled: can(me, "audit.view") },
+      { key: "activity" as const, label: "Activity", helper: "See important actions and security events.", icon: ScrollText, enabled: can(me, "audit.view") },
     ],
     [me],
   );
@@ -498,8 +508,7 @@ export default function AdminPage() {
     return (
       <main className="sl-page min-h-screen px-6 py-10">
         <div className="mx-auto w-full max-w-6xl">
-          <InnerNav breadcrumb="Admin" />
-          <p className="mt-6 text-sm text-[#5D6B85]">Preparing your workspace...</p>
+          <p className="text-sm text-[#5D6B85]">Preparing your workspace...</p>
         </div>
       </main>
     );
@@ -545,18 +554,29 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen bg-[#F4F7FB] px-3 py-4 text-[#122033] sm:px-6">
       <div className="mx-auto w-full max-w-[1480px] space-y-4">
-        <InnerNav breadcrumb="Admin Workspace" />
-
         <section className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="sticky top-4 self-start rounded-[24px] border border-[#D7E4F6] bg-white p-4 shadow-[0_18px_38px_rgba(36,57,92,0.08)]">
-            <div className="rounded-2xl bg-gradient-to-r from-[#1F7AA8] to-[#2E67E8] px-4 py-3 text-white">
-              <p className="text-sm font-semibold">SmartLink Admin</p>
-              <p className="mt-1 text-xs text-white/90">{me?.email || "Admin"}</p>
-              <p className="text-xs text-white/85">{roleLabel(me?.role)}</p>
+          <aside className="sticky top-4 self-start overflow-hidden rounded-[24px] border border-[#DDE7F5] bg-white shadow-[0_18px_38px_rgba(36,57,92,0.08)]">
+            <div className="px-5 pb-5 pt-6">
+              <Link href="/" className="inline-flex items-center">
+                <Image
+                  src="/logo.png"
+                  alt="SmartLinkBahamas logo"
+                  width={2103}
+                  height={748}
+                  className="h-9 w-auto object-contain"
+                  priority
+                />
+              </Link>
+
+              <div className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-[#DDE7F5] px-4 py-2.5">
+                <ShieldCheck className="h-4 w-4 shrink-0 text-[#2E67E8]" />
+                <span className="truncate text-[0.9rem] font-medium text-[#3D4F6B]">{roleLabel(me?.role)}</span>
+              </div>
             </div>
 
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#2E67E8]">Navigation</p>
-            <div className="mt-2 space-y-2">
+            <div className="h-px bg-[#E9EFF8]" />
+
+            <nav className="py-2">
               {visibleTabs.map((tab) => {
                 const active = activeTab === tab.key;
                 const children =
@@ -569,39 +589,47 @@ export default function AdminPage() {
                         : [];
                 const isExpanded = Boolean(expandedNav[tab.key]);
                 const hasChildren = children.length > 0;
+                const Icon = tab.icon;
 
                 return (
-                  <div key={tab.key} className="rounded-xl border border-[#E1E9F8] bg-[#FCFDFF]">
-                    <div className="flex items-center gap-2 p-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab(tab.key);
-                          if (hasChildren) {
-                            setExpandedNav((current) => ({ ...current, [tab.key]: true }));
-                          }
-                        }}
-                        className={`flex-1 rounded-lg px-3 py-2 text-left transition ${
-                          active ? "bg-[#EAF1FF] text-[#1B4FC8]" : "hover:bg-[#F3F7FF]"
+                  <div key={tab.key}>
+                    <button
+                      type="button"
+                      aria-expanded={hasChildren ? isExpanded : undefined}
+                      onClick={() => {
+                        setActiveTab(tab.key);
+                        if (hasChildren) {
+                          setExpandedNav((current) => ({ ...current, [tab.key]: !current[tab.key] }));
+                        }
+                      }}
+                      className={`relative flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors ${
+                        active ? "bg-[#EEF3FF]" : "hover:bg-[#F6F9FE]"
+                      }`}
+                    >
+                      <Icon
+                        className={`h-[1.15rem] w-[1.15rem] shrink-0 ${active ? "text-[#1B4FC8]" : "text-[#5A6C89]"}`}
+                      />
+                      <span
+                        className={`flex-1 truncate text-[0.97rem] ${
+                          active ? "font-semibold text-[#1B4FC8]" : "font-medium text-[#3D4F6B]"
                         }`}
                       >
-                        <p className="text-sm font-semibold">{tab.label}</p>
-                        <p className="text-xs text-[#5A6C89]">{tab.helper}</p>
-                      </button>
+                        {tab.label}
+                      </span>
                       {hasChildren ? (
-                        <button
-                          type="button"
-                          onClick={() => setExpandedNav((current) => ({ ...current, [tab.key]: !isExpanded }))}
-                          className="rounded-lg px-2 py-2 text-[#4F617F] hover:bg-[#EDF3FF]"
-                          aria-label={isExpanded ? `Collapse ${tab.label}` : `Expand ${tab.label}`}
-                        >
-                          {isExpanded ? "▾" : "▸"}
-                        </button>
+                        <ChevronRight
+                          className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
+                            isExpanded ? "rotate-90" : ""
+                          } ${active ? "text-[#1B4FC8]" : "text-[#8FA0BC]"}`}
+                        />
                       ) : null}
-                    </div>
+                      {active ? (
+                        <span className="absolute inset-y-0 right-0 w-[3px] rounded-l-full bg-[#2E67E8]" />
+                      ) : null}
+                    </button>
 
                     {hasChildren && isExpanded ? (
-                      <div className="space-y-1 px-3 pb-3">
+                      <div className="bg-[#F7FAFE] py-1.5">
                         {children.map((child) => {
                           const childActive =
                             (tab.key === "experts" && activeExpertsTab === child.key) ||
@@ -618,8 +646,10 @@ export default function AdminPage() {
                                 if (tab.key === "leads") setActiveLeadsTab(child.key as LeadsSubTabKey);
                                 if (tab.key === "settings") setActiveSettingsTab(child.key as SettingsSubTabKey);
                               }}
-                              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
-                                childActive ? "bg-[#2E67E8] text-white" : "bg-white text-[#334763] hover:bg-[#EEF4FF]"
+                              className={`block w-full px-5 py-2.5 pl-[3.25rem] text-left text-[0.9rem] transition-colors ${
+                                childActive
+                                  ? "font-semibold text-[#1B4FC8]"
+                                  : "font-normal text-[#5A6C89] hover:text-[#1B4FC8]"
                               }`}
                             >
                               {child.label}
@@ -631,31 +661,38 @@ export default function AdminPage() {
                   </div>
                 );
               })}
-            </div>
+            </nav>
 
-            <p className="mt-4 rounded-xl bg-[#F5F8FF] px-3 py-2 text-xs text-[#5D6F8A]">
-              Access: {enabledTabCount} sections
-            </p>
-            <Button
-              type="button"
-              className="mt-3 w-full rounded-xl bg-[#14223A] text-white hover:bg-[#1D2F4F]"
-              onClick={async () => {
-                try {
-                  await logoutCurrentSession();
-                } catch {
-                  clearAdminSession();
-                }
-                router.replace("/login");
-              }}
-            >
-              Sign Out
-            </Button>
-            <Link
-              href="/security"
-              className="mt-2 block rounded-xl border border-[#DCE7F6] bg-white px-3 py-2 text-center text-sm font-semibold text-[#1F4CB6] hover:bg-[#EEF4FF]"
-            >
-              Open Security Settings
-            </Link>
+            <div className="h-px bg-[#E9EFF8]" />
+
+            <div className="px-3 py-4">
+              <div className="min-w-0 px-2 pb-3">
+                <p className="truncate text-[0.85rem] font-medium text-[#3D4F6B]">{me?.email || "Admin"}</p>
+                <p className="mt-0.5 text-xs text-[#8FA0BC]">Access to {enabledTabCount} sections</p>
+              </div>
+              <Link
+                href="/security"
+                className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-[0.9rem] font-medium text-[#3D4F6B] transition-colors hover:bg-[#F6F9FE] hover:text-[#1B4FC8]"
+              >
+                <ShieldCheck className="h-[1.05rem] w-[1.05rem] shrink-0 text-[#5A6C89]" />
+                Security Settings
+              </Link>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await logoutCurrentSession();
+                  } catch {
+                    clearAdminSession();
+                  }
+                  router.replace("/login");
+                }}
+                className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left text-[0.9rem] font-medium text-[#5A6C89] transition-colors hover:bg-rose-50 hover:text-rose-600"
+              >
+                <LogOut className="h-[1.05rem] w-[1.05rem] shrink-0" />
+                Sign Out
+              </button>
+            </div>
           </aside>
 
           <div className="space-y-4">
@@ -1189,16 +1226,107 @@ export default function AdminPage() {
                                       {application.expert_organization && <div><span className="text-[#60728E] block text-xs mb-1">Organization</span><span className="font-medium text-[#111827]">{application.expert_organization}</span></div>}
                                       {application.expert_location && <div><span className="text-[#60728E] block text-xs mb-1">Location</span><span className="font-medium text-[#111827]">{application.expert_location}</span></div>}
                                       {application.expert_availability_status && <div><span className="text-[#60728E] block text-xs mb-1">Availability</span><span className="font-medium text-[#111827]">{application.expert_availability_status}</span></div>}
-                                      {application.expert_hourly_rate_usd && <div><span className="text-[#60728E] block text-xs mb-1">Hourly Rate</span><span className="font-medium text-[#111827]">${application.expert_hourly_rate_usd}</span></div>}
-                                      {application.expert_category_tags && application.expert_category_tags.length > 0 && <div><span className="text-[#60728E] block text-xs mb-1">Categories</span><span className="font-medium text-[#111827]">{application.expert_category_tags.join(", ")}</span></div>}
-                                      {application.expert_service_tags && application.expert_service_tags.length > 0 && <div><span className="text-[#60728E] block text-xs mb-1">Services</span><span className="font-medium text-[#111827]">{application.expert_service_tags.join(", ")}</span></div>}
                                     </div>
                                   )}
-                                </div>
+                                  </div>
 
-                                <h4 className="text-lg font-semibold text-gray-800 mb-3">Admin Actions</h4>
+                                  {(() => {
+                                    const meta = application.metadata || {};
+                                    const intro = meta.introduction_bio;
+                                    const packagesList = Array.isArray(meta.custom_packages) ? meta.custom_packages : [];
+                                    const hasPackages = packagesList.length > 0;
+                                    const hasIntro = Boolean(intro?.text);
+
+                                    if (!hasPackages && !hasIntro) return null;
+
+                                    return (
+                                      <div className="mt-6 rounded-xl border border-[#D9E3F3] bg-[#F8FBFF] p-5 space-y-4">
+                                        <h4 className="text-base font-bold text-[#111827]">Custom Packages &amp; Intro Bio Review</h4>
+
+                                        {hasIntro && (
+                                          <div className="rounded-lg border border-[#E2EAF8] bg-white p-4 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-xs font-semibold uppercase text-[#5D6B85]">Proposed Introduction Bio</span>
+                                              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                                intro.status === "approved" ? "bg-emerald-100 text-emerald-800" : intro.status === "rejected" ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800"
+                                              }`}>
+                                                {intro.status || "pending"}
+                                              </span>
+                                            </div>
+                                            <p className="text-sm text-[#111827]">{intro.text}</p>
+                                            {intro.status !== "approved" && (
+                                              <div className="flex gap-2 pt-2">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => runAction(() => reviewAdminExpertIntro(token, application.expert_id, "approved"), "Introduction bio approved.")}
+                                                  className="rounded-lg bg-[#E8F9EF] px-3 py-1.5 text-xs font-semibold text-[#12733E] hover:bg-[#D1F3DF] transition"
+                                                >
+                                                  Approve Bio
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => runAction(() => reviewAdminExpertIntro(token, application.expert_id, "rejected"), "Introduction bio rejected.")}
+                                                  className="rounded-lg bg-[#FFF0F2] px-3 py-1.5 text-xs font-semibold text-[#C8234C] hover:bg-[#FFE0E6] transition"
+                                                >
+                                                  Reject Bio
+                                                </button>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {hasPackages && (
+                                          <div className="space-y-3">
+                                            <span className="text-xs font-semibold uppercase text-[#5D6B85] block">Submitted Service Packages</span>
+                                            <div className="grid gap-3 md:grid-cols-2">
+                                              {packagesList.map((pkg: any) => (
+                                                <div key={pkg.id} className="rounded-lg border border-[#E2EAF8] bg-white p-4 space-y-2">
+                                                  <div className="flex items-start justify-between gap-2">
+                                                    <div>
+                                                      <h5 className="font-semibold text-[#111827] text-sm">{pkg.name}</h5>
+                                                      <span className="text-xs text-[#356AF6] font-medium">{pkg.category}</span>
+                                                    </div>
+                                                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                                                      pkg.status === "approved" ? "bg-emerald-100 text-emerald-800" : pkg.status === "rejected" ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800"
+                                                    }`}>
+                                                      {pkg.status || "pending"}
+                                                    </span>
+                                                  </div>
+                                                  <p className="text-xs text-[#5D6B85]">{pkg.description}</p>
+                                                  <div className="flex items-center justify-between text-xs text-[#111827] pt-1">
+                                                    <span>Price: <strong>${pkg.priceUsd}</strong></span>
+                                                    <span>Delivery: <strong>{pkg.deliveryWindow}</strong></span>
+                                                  </div>
+                                                  {pkg.status !== "approved" && (
+                                                    <div className="flex gap-2 pt-2 border-t border-[#F0F4FA]">
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => runAction(() => reviewAdminExpertPackage(token, application.expert_id, pkg.id, "approved"), "Service package approved.")}
+                                                        className="rounded-lg bg-[#E8F9EF] px-3 py-1.5 text-xs font-semibold text-[#12733E] hover:bg-[#D1F3DF] transition"
+                                                      >
+                                                        Approve Package
+                                                      </button>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => runAction(() => reviewAdminExpertPackage(token, application.expert_id, pkg.id, "rejected"), "Service package rejected.")}
+                                                        className="rounded-lg bg-[#FFF0F2] px-3 py-1.5 text-xs font-semibold text-[#C8234C] hover:bg-[#FFE0E6] transition"
+                                                      >
+                                                        Reject Package
+                                                      </button>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
+
+                                <h4 className="text-lg font-semibold text-gray-800 mb-3 mt-6">Admin Actions</h4>
                                 <div className="flex flex-wrap gap-2">
-                                  {can(me, "expert.approve") && (
+                                  {application.status !== "approved" && can(me, "expert.approve") && (
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -1210,7 +1338,7 @@ export default function AdminPage() {
                                       Approve Application
                                     </button>
                                   )}
-                                  {can(me, "expert.request_info") && (
+                                  {application.status !== "approved" && can(me, "expert.request_info") && (
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -1221,7 +1349,7 @@ export default function AdminPage() {
                                       Request Info
                                     </button>
                                   )}
-                                  {can(me, "expert.recommend") && (
+                                  {application.status === "approved" && can(me, "expert.recommend") && (
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -1232,7 +1360,7 @@ export default function AdminPage() {
                                       Recommend
                                     </button>
                                   )}
-                                  {can(me, "expert.recommend") && (
+                                  {application.status === "approved" && can(me, "expert.recommend") && (
                                     <button
                                       type="button"
                                       onClick={() => {

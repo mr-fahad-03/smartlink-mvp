@@ -177,12 +177,16 @@ export async function submitPublicReviewToBackend(payload: {
 }
 
 export async function createIntroductionRequestsInBackend(params: {
-  submission: AssessmentSubmission;
+  assessmentId?: string;
+  submission?: AssessmentSubmission;
+  leadName?: string;
+  leadEmail?: string;
+  leadPhone?: string;
   requests: Array<{
     expertId: string;
     expertName: string;
-    serviceIds: string[];
-    serviceNames: string[];
+    serviceIds?: string[];
+    serviceNames?: string[];
     category?: string;
     urgencyLevel?: string;
     budgetPreference?: string;
@@ -191,16 +195,20 @@ export async function createIntroductionRequestsInBackend(params: {
     expertTier?: string;
   }>;
 }) {
-  const { submission, requests } = params;
+  const assessmentId = params.assessmentId || params.submission?.assessmentId;
+  const leadName = params.leadName || params.submission?.lead.fullName || "Client";
+  const leadEmail = params.leadEmail || params.submission?.lead.workEmail || "client@example.com";
+  const leadPhone = params.leadPhone || params.submission?.lead.phoneNumber;
+
   return postJson<{
     success: boolean;
     data: { reviewTokens: Array<{ expertId: string; reviewToken: string; expiresAt: string }> };
-  }>("/introduction-requests", {
-    assessmentId: submission.assessmentId,
-    leadName: submission.lead.fullName,
-    leadEmail: submission.lead.workEmail,
-    leadPhone: submission.lead.phoneNumber,
-    requests,
+  }>("/introductions", {
+    assessmentId,
+    leadName,
+    leadEmail,
+    leadPhone,
+    requests: params.requests,
   });
 }
 

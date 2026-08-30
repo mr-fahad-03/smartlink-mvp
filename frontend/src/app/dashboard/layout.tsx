@@ -1,7 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react/no-unescaped-entities */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -12,11 +13,11 @@ import {
   Settings,
   PlusCircle,
   LogOut,
-  ChevronRight,
+  UserRound,
   Menu,
-  X
+  X,
 } from "lucide-react";
-import { getSessionMe, clearAdminSession } from "@/lib/admin-session";
+import { getSessionMe, clearAdminSession, logoutCurrentSession } from "@/lib/admin-session";
 import { canUseClientFlows } from "@/lib/role-guard";
 
 const navigation = [
@@ -26,6 +27,105 @@ const navigation = [
   { name: "My Reviews", href: "/dashboard/reviews", icon: Star },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
+
+function SidebarBody({
+  pathname,
+  email,
+  onNavigate,
+  onLogout,
+}: {
+  pathname: string;
+  email?: string | null;
+  onNavigate?: () => void;
+  onLogout: () => void;
+}) {
+  return (
+    <>
+      <div className="px-5 pb-5 pt-6">
+        <Link href="/" onClick={onNavigate} className="inline-flex items-center">
+          <Image
+            src="/logo.png"
+            alt="SmartLinkBahamas logo"
+            width={2103}
+            height={748}
+            className="h-9 w-auto object-contain"
+            priority
+          />
+        </Link>
+
+        <div className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-[#DDE7F5] px-4 py-2.5 dark:border-gray-700">
+          <UserRound className="h-4 w-4 shrink-0 text-[#2E67E8] dark:text-blue-400" />
+          <span className="truncate text-[0.9rem] font-medium text-[#3D4F6B] dark:text-gray-300">Client Account</span>
+        </div>
+      </div>
+
+      <div className="h-px bg-[#E9EFF8] dark:bg-gray-700" />
+
+      <nav className="flex-1 overflow-y-auto py-2">
+        {navigation.map((item) => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
+
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              onClick={onNavigate}
+              className={`relative flex items-center gap-3 px-5 py-3.5 transition-colors ${
+                isActive ? "bg-[#EEF3FF] dark:bg-blue-950/30" : "hover:bg-[#F6F9FE] dark:hover:bg-gray-700/40"
+              }`}
+            >
+              <Icon
+                className={`h-[1.15rem] w-[1.15rem] shrink-0 ${
+                  isActive ? "text-[#1B4FC8] dark:text-blue-400" : "text-[#5A6C89] dark:text-gray-400"
+                }`}
+              />
+              <span
+                className={`flex-1 truncate text-[0.97rem] ${
+                  isActive
+                    ? "font-semibold text-[#1B4FC8] dark:text-blue-400"
+                    : "font-medium text-[#3D4F6B] dark:text-gray-300"
+                }`}
+              >
+                {item.name}
+              </span>
+              {isActive ? <span className="absolute inset-y-0 right-0 w-[3px] rounded-l-full bg-[#2E67E8]" /> : null}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="h-px bg-[#E9EFF8] dark:bg-gray-700" />
+
+      <div className="px-3 py-4">
+        {email ? (
+          <div className="min-w-0 px-2 pb-3">
+            <p className="truncate text-[0.85rem] font-medium text-[#3D4F6B] dark:text-gray-300">{email}</p>
+            <p className="mt-0.5 text-xs text-[#8FA0BC] dark:text-gray-500">Client workspace</p>
+          </div>
+        ) : null}
+
+        <Link
+          href="/quiz"
+          onClick={onNavigate}
+          className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-[0.9rem] font-medium text-[#3D4F6B] transition-colors hover:bg-[#F6F9FE] hover:text-[#1B4FC8] dark:text-gray-300 dark:hover:bg-gray-700/40 dark:hover:text-blue-400"
+        >
+          <PlusCircle className="h-[1.05rem] w-[1.05rem] shrink-0 text-[#5A6C89] dark:text-gray-400" />
+          New Assessment
+        </Link>
+
+        <button
+          type="button"
+          onClick={onLogout}
+          className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left text-[0.9rem] font-medium text-[#5A6C89] transition-colors hover:bg-rose-50 hover:text-rose-600 dark:text-gray-400 dark:hover:bg-rose-950/20 dark:hover:text-rose-400"
+        >
+          <LogOut className="h-[1.05rem] w-[1.05rem] shrink-0" />
+          Sign Out
+        </button>
+      </div>
+    </>
+  );
+}
 
 export default function ClientDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -53,152 +153,64 @@ export default function ClientDashboardLayout({ children }: { children: React.Re
     checkAuth();
   }, [router]);
 
-  const handleLogout = () => {
-    clearAdminSession();
+  const handleLogout = async () => {
+    try {
+      await logoutCurrentSession();
+    } catch {
+      clearAdminSession();
+    }
     router.replace("/login");
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex min-h-screen bg-[#F4F7FB] dark:bg-gray-900">
       {/* Mobile menu trigger */}
-      <div className="md:hidden fixed top-[18px] right-24 z-50">
+      <div className="fixed right-4 top-4 z-50 md:hidden">
         <button
+          type="button"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm text-gray-700 dark:text-gray-200"
+          className="rounded-xl border border-[#DDE7F5] bg-white p-2 text-[#3D4F6B] shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+          aria-label={mobileMenuOpen ? "Close navigation" : "Open navigation"}
         >
-          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
-      {/* Sidebar for Desktop */}
-      <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 hidden md:flex md:flex-col shrink-0 overflow-hidden">
-        <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
-            Client Space
-          </h2>
-          <p className="text-xs text-gray-500 mt-1 font-medium">SmartLink Bahamas</p>
-        </div>
-
-        <div className="flex-1 px-3 py-4 overflow-y-auto flex flex-col justify-between">
-          <ul className="space-y-1.5 font-medium">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    className={`flex items-center p-2.5 rounded-xl group transition-all duration-200 ${
-                      isActive
-                        ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                    }`}
-                  >
-                    <item.icon
-                      className={`w-5 h-5 transition-colors ${
-                        isActive
-                          ? "text-blue-600 dark:text-blue-400"
-                          : "text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200"
-                      }`}
-                    />
-                    <span className="ml-3 text-[0.92rem]">{item.name}</span>
-                    {isActive && <ChevronRight className="w-4 h-4 ml-auto text-blue-600 dark:text-blue-400" />}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-
-          <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-            <Link
-              href="/quiz"
-              className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-sm rounded-xl shadow-md transition-all duration-200 hover:shadow-lg"
-            >
-              <PlusCircle className="w-4 h-4" />
-              New Assessment
-            </Link>
-
-            <button
-              onClick={handleLogout}
-              className="flex items-center p-2.5 rounded-xl w-full text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-950/20 transition-all font-medium"
-            >
-              <LogOut className="w-5 h-5 text-gray-400 group-hover:text-red-500" />
-              <span className="ml-3 text-[0.92rem]">Logout</span>
-            </button>
-          </div>
-        </div>
+      {/* Desktop sidebar */}
+      <aside className="hidden w-[272px] shrink-0 flex-col border-r border-[#DDE7F5] bg-white md:flex dark:border-gray-700 dark:bg-gray-800">
+        <SidebarBody pathname={pathname} email={user?.email} onLogout={handleLogout} />
       </aside>
 
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-40 flex">
-          <div className="fixed inset-0 bg-black bg-opacity-40" onClick={() => setMobileMenuOpen(false)} />
-          <aside className="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-gray-800 pt-5 pb-4 px-4 shadow-xl">
-            <div className="flex items-center justify-between px-2 pb-4 border-b border-gray-100 dark:border-gray-700">
-              <h2 className="text-xl font-black text-blue-600 dark:text-blue-400">Client Space</h2>
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-1 rounded-md text-gray-400 hover:text-gray-500"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="mt-4 flex-1 h-0 overflow-y-auto flex flex-col justify-between">
-              <ul className="space-y-1">
-                {navigation.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <li key={item.name}>
-                      <Link
-                        href={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center p-2.5 rounded-xl ${
-                          isActive
-                            ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                        }`}
-                      >
-                        <item.icon className="w-5 h-5" />
-                        <span className="ml-3">{item.name}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-
-              <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <Link
-                  href="/quiz"
-                  className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-blue-600 text-white font-semibold text-sm rounded-xl"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  New Assessment
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center p-2.5 rounded-xl w-full text-gray-500 hover:text-red-600 hover:bg-red-50"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span className="ml-3">Logout</span>
-                </button>
-              </div>
-            </div>
+      {/* Mobile drawer */}
+      {mobileMenuOpen ? (
+        <div className="fixed inset-0 z-40 flex md:hidden">
+          <div
+            className="fixed inset-0 bg-black/40"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <aside className="relative flex w-full max-w-[288px] flex-col bg-white shadow-xl dark:bg-gray-800">
+            <SidebarBody
+              pathname={pathname}
+              email={user?.email}
+              onNavigate={() => setMobileMenuOpen(false)}
+              onLogout={handleLogout}
+            />
           </aside>
         </div>
-      )}
+      ) : null}
 
-      {/* Main Content Area */}
-      <main className="flex-1 p-6 md:p-8 overflow-y-auto min-h-screen">
-        <div className="max-w-6xl mx-auto">
-          {children}
-        </div>
+      {/* Main content */}
+      <main className="min-h-screen flex-1 overflow-y-auto p-6 md:p-8">
+        <div className="mx-auto max-w-6xl">{children}</div>
       </main>
     </div>
   );

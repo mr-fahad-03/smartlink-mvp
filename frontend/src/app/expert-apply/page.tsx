@@ -192,8 +192,62 @@ function ExpertApplyContent() {
     } catch { /* ignore corrupt draft */ }
   }, []);
 
-  const set = <K extends keyof ExpertApplicationDraft>(field: K, value: ExpertApplicationDraft[K]) =>
+  const [step0Errors, setStep0Errors] = useState<Record<string, string>>({});
+  const [stepErrorAlert, setStepErrorAlert] = useState<string | null>(null);
+
+  const validateStep0 = (data: ExpertApplicationDraft): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    if (!data.fullName.trim() || data.fullName.trim().length < 2) {
+      errors.fullName = "Full Name is required (at least 2 characters).";
+    }
+    if (!data.professionalTitle.trim() || data.professionalTitle.trim().length < 2) {
+      errors.professionalTitle = "Title is required (at least 2 characters).";
+    }
+    if (!data.businessName.trim() || data.businessName.trim().length < 2) {
+      errors.businessName = "Business / Firm is required.";
+    }
+    if (!data.workEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.workEmail.trim())) {
+      errors.workEmail = "Valid work email is required.";
+    }
+    if (!data.primaryLocation.trim() || data.primaryLocation.trim().length < 2) {
+      errors.primaryLocation = "Location is required.";
+    }
+    if (!data.mainSpecialization.trim()) {
+      errors.mainSpecialization = "Specialization category is required.";
+    }
+    if (!data.shortBio.trim() || data.shortBio.trim().length < 10) {
+      errors.shortBio = "Bio is required (at least 10 characters).";
+    }
+    return errors;
+  };
+
+  const handleStepNavigation = (targetStep: number) => {
+    if (targetStep > currentStep) {
+      if (currentStep === 0 || targetStep > 0) {
+        const errors = validateStep0(draft);
+        if (Object.keys(errors).length > 0) {
+          setStep0Errors(errors);
+          setStepErrorAlert("Please complete all required fields on Step 1 (Profile) before moving to the next step.");
+          setCurrentStep(0);
+          return;
+        }
+      }
+    }
+    setStep0Errors({});
+    setStepErrorAlert(null);
+    setCurrentStep(targetStep);
+  };
+
+  const set = <K extends keyof ExpertApplicationDraft>(field: K, value: ExpertApplicationDraft[K]) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
+    if (step0Errors[field]) {
+      setStep0Errors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
 
   const handleFileUpload = async (key: ExpertDraftBooleanField, file: File | null) => {
     if (!file) return;
@@ -223,12 +277,22 @@ function ExpertApplyContent() {
   const clearDraft = () => {
     globalThis.localStorage?.removeItem(EXPERT_DRAFT_STORAGE_KEY);
     setDraft(defaultDraft);
+    setStep0Errors({});
+    setStepErrorAlert(null);
     setCurrentStep(0);
   };
 
   const submitApplication = async () => {
     setSubmitError(null);
     setSubmitSuccess(null);
+
+    const errors = validateStep0(draft);
+    if (Object.keys(errors).length > 0) {
+      setStep0Errors(errors);
+      setStepErrorAlert("Please complete all required fields on Step 1 (Profile) before submitting.");
+      setCurrentStep(0);
+      return;
+    }
 
     const token = getAdminAccessToken();
     if (!token) {
@@ -362,7 +426,7 @@ function ExpertApplyContent() {
               <button
                 key={step}
                 type="button"
-                onClick={() => setCurrentStep(i)}
+                onClick={() => handleStepNavigation(i)}
                 className={`h-2 flex-1 rounded-full transition-all duration-300 ${i <= currentStep ? "bg-[#356AF6]" : "bg-[#E7EEFB]"}`}
                 aria-label={`Go to ${step}`}
               />
@@ -373,7 +437,7 @@ function ExpertApplyContent() {
               <button
                 key={step}
                 type="button"
-                onClick={() => setCurrentStep(i)}
+                onClick={() => handleStepNavigation(i)}
                 className={`flex-1 text-center text-[0.7rem] font-medium transition ${i === currentStep ? "text-[#356AF6]" : "text-[#9CA3AF]"}`}
               >
                 {step}
@@ -393,6 +457,13 @@ function ExpertApplyContent() {
                   <UserRound className="h-3.5 w-3.5 text-[#356AF6]" />
                   Profile Details
                 </p>
+
+                {stepErrorAlert && (
+                  <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-700">
+                    {stepErrorAlert}
+                  </div>
+                )}
+
                 <div className="mt-4 grid gap-3.5 sm:grid-cols-2">
                   {[
                     { key: "fullName",          label: "Full Name *",       placeholder: "Jane Smith" },
@@ -402,28 +473,38 @@ function ExpertApplyContent() {
                     { key: "phoneNumber",       label: "Phone",             placeholder: "+1 (242) 555-0101" },
                     { key: "primaryLocation",   label: "Location *",        placeholder: "Nassau, Bahamas" },
                     { key: "hourlyRate",        label: "Hourly Rate (USD)", placeholder: "175" },
-                  ].map(({ key, label, placeholder }) => (
-                    <div key={key} className="space-y-1">
-                      <label className="text-xs font-medium text-[#5D6B85]">{label}</label>
-                      <input
-                        value={draft[key as keyof ExpertApplicationDraft] as string}
-                        onChange={(e) => set(key as keyof ExpertApplicationDraft, e.target.value)}
-                        placeholder={placeholder}
-                        className={inputCls}
-                      />
-                    </div>
-                  ))}
+                  ].map(({ key, label, placeholder }) => {
+                    const hasError = Boolean(step0Errors[key]);
+                    return (
+                      <div key={key} className="space-y-1">
+                        <label className="text-xs font-medium text-[#5D6B85]">{label}</label>
+                        <input
+                          value={draft[key as keyof ExpertApplicationDraft] as string}
+                          onChange={(e) => set(key as keyof ExpertApplicationDraft, e.target.value)}
+                          placeholder={placeholder}
+                          className={`${inputCls} ${hasError ? "border-rose-400 focus:border-rose-500 focus:ring-rose-500/15" : ""}`}
+                        />
+                        {hasError && (
+                          <p className="text-[0.7rem] text-rose-600">{step0Errors[key]}</p>
+                        )}
+                      </div>
+                    );
+                  })}
                   <div className="space-y-1">
                     <label className="text-xs font-medium text-[#5D6B85]">Specialization *</label>
                     <select
                       value={draft.mainSpecialization}
                       onChange={(e) => set("mainSpecialization", e.target.value)}
-                      className={inputCls}
+                      className={`${inputCls} ${step0Errors.mainSpecialization ? "border-rose-400 focus:border-rose-500 focus:ring-rose-500/15" : ""}`}
                     >
                       <option value="">Select category…</option>
                       {specializationOptions.map((o) => <option key={o} value={o}>{o}</option>)}
                     </select>
-                    <p className="text-[0.7rem] text-[#A0AECB]">e.g. Business Setup, Cybersecurity, Accounting — used for matching accuracy</p>
+                    {step0Errors.mainSpecialization ? (
+                      <p className="text-[0.7rem] text-rose-600">{step0Errors.mainSpecialization}</p>
+                    ) : (
+                      <p className="text-[0.7rem] text-[#A0AECB]">e.g. Business Setup, Cybersecurity, Accounting — used for matching accuracy</p>
+                    )}
                   </div>
                 </div>
 
@@ -433,13 +514,19 @@ function ExpertApplyContent() {
                     value={draft.shortBio}
                     onChange={(e) => set("shortBio", e.target.value)}
                     placeholder="Describe the problems you solve and who you help (2–3 sentences)"
-                    className="min-h-[96px] w-full rounded-xl border border-[#D9E3F3] bg-white px-3.5 py-2.5 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15 placeholder:text-[#A0AECB]"
+                    className={`min-h-[96px] w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15 placeholder:text-[#A0AECB] ${
+                      step0Errors.shortBio ? "border-rose-400 focus:border-rose-500 focus:ring-rose-500/15" : "border-[#D9E3F3]"
+                    }`}
                   />
-                  <p className="text-[0.7rem] text-[#A0AECB]">2–3 sentences. Describe the problems you solve and who you help.</p>
+                  {step0Errors.shortBio ? (
+                    <p className="text-[0.7rem] text-rose-600">{step0Errors.shortBio}</p>
+                  ) : (
+                    <p className="text-[0.7rem] text-[#A0AECB]">2–3 sentences. Describe the problems you solve and who you help.</p>
+                  )}
                 </div>
 
                 <div className="mt-5 flex justify-end">
-                  <Button onClick={() => setCurrentStep(1)} className="rounded-xl bg-[#356AF6] text-white hover:bg-[#2C59D8]">
+                  <Button onClick={() => handleStepNavigation(1)} className="rounded-xl bg-[#356AF6] text-white hover:bg-[#2C59D8]">
                     Next: Documents
                     <ArrowRight className="h-4 w-4" />
                   </Button>

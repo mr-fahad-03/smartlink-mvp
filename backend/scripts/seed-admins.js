@@ -16,14 +16,13 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 const admins = [
   {
     email: "superadmin@gmail.com",
-    password: "superadmin",
+    password: "Asad@1122@",
     role: "super_admin",
     fullName: "Super Admin"
   },
   {
     email: "admin@gmail.com",
-    password: "admin", // note: might fail if Supabase forces minimum 6 chars password policy
-    fallbackPassword: "admin123",
+    password: "Asad@1122@",
     role: "admin",
     fullName: "Admin User"
   }

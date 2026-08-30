@@ -13,7 +13,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,15 @@ export default function LoginPage() {
 
   const hcaptchaSiteKey = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || "";
   const requireEmailVerification = process.env.NEXT_PUBLIC_EMAIL_VERIFICATION_REQUIRED !== "false";
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get("verified") === "true") {
+        setMessage("Email verified successfully! Please sign in below.");
+      }
+    }
+  }, []);
 
   const resetAuthState = () => {
     setError("");

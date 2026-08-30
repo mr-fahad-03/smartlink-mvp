@@ -122,6 +122,30 @@ export async function updateExpertState(token: string, expertId: string, state: 
   return response.data;
 }
 
+export async function reviewAdminExpertPackage(token: string, expertId: string, packageId: string, status: "approved" | "rejected", rejectionReason?: string) {
+  const response = await requestJson<{ success: boolean; data: unknown }>(
+    `/admin/expert-packages/${expertId}/${packageId}`,
+    token,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status, rejectionReason: rejectionReason || "" }),
+    },
+  );
+  return response.data;
+}
+
+export async function reviewAdminExpertIntro(token: string, expertId: string, status: "approved" | "rejected") {
+  const response = await requestJson<{ success: boolean; data: unknown }>(
+    `/admin/expert-intro/${expertId}`,
+    token,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    },
+  );
+  return response.data;
+}
+
 export async function updateExpertBoost(token: string, expertId: string, payload: { boostPoints: 0 | 5 | 10 | 15; notes?: string }) {
   const response = await requestJson<{ success: boolean; data: unknown }>(`/admin/experts/${expertId}/boost`, token, {
     method: "PATCH",

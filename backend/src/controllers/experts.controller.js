@@ -156,8 +156,12 @@ async function patchUpdateExpertProfile(req, res) {
   if (!token) throw new AppError("Missing bearer token.", 401);
   const me = await getMeFromAccessToken(token);
 
-  // Allow partial updates on safe fields
-  const allowedFields = ["name", "role", "organization", "location", "category_tags", "service_tags", "budget_range", "availability_status", "remote_available", "hourly_rate_usd", "years_experience"];
+  // Allow partial updates on safe fields including packages and intro bio
+  const allowedFields = [
+    "name", "role", "organization", "location", "category_tags", "service_tags",
+    "budget_range", "availability_status", "remote_available", "hourly_rate_usd",
+    "years_experience", "custom_packages", "introduction_bio"
+  ];
   const updates = {};
   for (const field of allowedFields) {
     if (req.body[field] !== undefined) {

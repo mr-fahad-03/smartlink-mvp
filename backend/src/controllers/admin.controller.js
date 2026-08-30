@@ -370,6 +370,62 @@ async function getLeadSearch(req, res) {
   return res.json({ success: true, data });
 }
 
+const { reviewExpertPackage, reviewExpertIntroductionBio } = require("../services/expert-workspace.service");
+
+async function patchReviewExpertPackage(req, res) {
+  const { expertId, packageId } = req.params;
+  const { status, rejectionReason } = req.body || {};
+
+  if (!["approved", "rejected"].includes(status)) {
+    throw new AppError("Status must be approved or rejected.", 400);
+  }
+
+  const updatedExpert = await reviewExpertPackage(expertId, packageId, status, rejectionReason || "");
+  await appendAdminAuditLog({
+    req,
+    actor: req.adminActor,
+    actionType: "expert_package_review",
+    targetType: "expert",
+    targetId: expertId,
+    previousValue: null,
+    newValue: { packageId, status },
+    notes: `Package ${packageId} set to ${status}`,
+  });
+
+  return res.json({
+    success: true,
+    message: `Package status updated to ${status}.`,
+    data: updatedExpert,
+  });
+}
+
+async function patchReviewExpertIntro(req, res) {
+  const { expertId } = req.params;
+  const { status } = req.body || {};
+
+  if (!["approved", "rejected"].includes(status)) {
+    throw new AppError("Status must be approved or rejected.", 400);
+  }
+
+  const updatedExpert = await reviewExpertIntroductionBio(expertId, status);
+  await appendAdminAuditLog({
+    req,
+    actor: req.adminActor,
+    actionType: "expert_intro_review",
+    targetType: "expert",
+    targetId: expertId,
+    previousValue: null,
+    newValue: { status },
+    notes: `Introduction bio set to ${status}`,
+  });
+
+  return res.json({
+    success: true,
+    message: `Introduction bio status updated to ${status}.`,
+    data: updatedExpert,
+  });
+}
+
 module.exports = {
   getMe,
   getRoles,
@@ -404,4 +460,6 @@ module.exports = {
   getUserSearch,
   getExpertSearch,
   getLeadSearch,
+  patchReviewExpertPackage,
+  patchReviewExpertIntro,
 };

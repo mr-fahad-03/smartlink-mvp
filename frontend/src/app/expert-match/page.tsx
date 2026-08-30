@@ -99,17 +99,50 @@ const SERVICE_PACKAGES: ServicePackage[] = [
 ];
 
 function getServicesForExpert(expert: Expert, highestRiskCategory: QuizCategory): ServicePackage[] {
+  const customPackages = (expert as any).customPackages || (expert as any).approvedPackages || (expert as any).packages;
+  if (Array.isArray(customPackages) && customPackages.length > 0) {
+    return customPackages.map((pkg: any, idx: number) => ({
+      id: pkg.id || `custom-pkg-${idx}`,
+      name: pkg.name || pkg.title || "Specialized Service",
+      description: pkg.description || "Tailored consulting service for your requirements.",
+      priceUsd: Number(pkg.priceUsd || pkg.price || expert.hourlyRateUsd || 150),
+      deliveryWindow: pkg.deliveryWindow || pkg.deliveryTime || "3-5 days",
+      categories: [highestRiskCategory],
+    }));
+  }
+
   const withSpecialty = SERVICE_PACKAGES.filter((service) =>
-    service.categories.some((category) => expert.specialties.includes(category)),
+    service.categories.some((category) => expert.specialties.includes(category) || category === highestRiskCategory),
   );
 
-  return withSpecialty
-    .sort((a, b) => {
-      const aPriority = a.categories.includes(highestRiskCategory) ? 0 : 1;
-      const bPriority = b.categories.includes(highestRiskCategory) ? 0 : 1;
-      return aPriority - bPriority;
-    })
-    .slice(0, 3);
+  if (withSpecialty.length > 0) {
+    return withSpecialty
+      .sort((a, b) => {
+        const aPriority = a.categories.includes(highestRiskCategory) ? 0 : 1;
+        const bPriority = b.categories.includes(highestRiskCategory) ? 0 : 1;
+        return aPriority - bPriority;
+      })
+      .slice(0, 3);
+  }
+
+  return [
+    {
+      id: `svc-consultation-${expert.id}`,
+      name: "Initial Advisory Consultation",
+      description: `Direct advisory session with ${expert.fullName} to assess and solve your key requirements.`,
+      priceUsd: Math.max(50, Number(expert.hourlyRateUsd) || 150),
+      deliveryWindow: "24-48 hours",
+      categories: [highestRiskCategory],
+    },
+    {
+      id: `svc-strategy-${expert.id}`,
+      name: "Comprehensive Strategy Sprint",
+      description: `In-depth analysis and execution plan prepared specifically by ${expert.fullName}.`,
+      priceUsd: Math.max(150, (Number(expert.hourlyRateUsd) || 150) * 3),
+      deliveryWindow: "3-5 days",
+      categories: [highestRiskCategory],
+    },
+  ];
 }
 
 function createTrackingId(prefix: string) {
@@ -234,11 +267,7 @@ export default function ExpertMatchPage() {
       return backendRanked.ranked;
     }
 
-    return rankExpertsForSubmission(
-      submission,
-      highestRisk.category,
-      mockQuizEnginePayload.experts,
-    );
+    return [];
   }, [backendRanked, highestRisk, submission]);
 
   const rankingFingerprint = submission
@@ -258,9 +287,26 @@ export default function ExpertMatchPage() {
         const recommendations = await recommendMatchesFromBackend(submission);
         if (cancelled) return;
         const mapped = recommendations.map((item) => {
-          const fallback = mockQuizEnginePayload.experts.find((candidate) => candidate.id === item.expert.id) || item.expert;
           return {
-            expert: { ...fallback, ...item.expert },
+            expert: {
+              id: item.expert.id,
+              fullName: item.expert.fullName || "Expert Advisor",
+              role: item.expert.role || "Specialist Advisor",
+              organization: item.expert.organization || "SmartLink Network",
+              yearsExperience: item.expert.yearsExperience || 5,
+              specialties: item.expert.specialties || [highestRisk.category],
+              certifications: [],
+              languages: ["English"],
+              timezone: "EST",
+              bio: item.expert.bio || "",
+              rating: item.expert.rating || 4.8,
+              hourlyRateUsd: item.expert.hourlyRateUsd || 100,
+              nextAvailableAt: item.expert.nextAvailableAt || new Date().toISOString(),
+              visibilityLevel: item.expert.visibilityLevel || "basic",
+              matchingVisibility: item.expert.matchingVisibility || "visible",
+              rankingWeightBoost: 0,
+              subscriptionTier: item.expert.subscriptionTier || "basic",
+            },
             profile: {
               locationLabel: "The Bahamas",
               coverageAreas: ["bahamas"],
@@ -278,7 +324,11 @@ export default function ExpertMatchPage() {
               budget: item.breakdown.budget,
               urgency: item.breakdown.urgency,
               experience: item.breakdown.reputation,
-              marketplaceBoost: item.breakdown.fairnessBoost + item.breakdown.performanceScore + item.breakdown.priorityBoost + item.breakdown.cooldownAdjustment,
+              marketplaceBoost:
+                item.breakdown.fairnessBoost +
+                item.breakdown.performanceScore +
+                item.breakdown.priorityBoost +
+                item.breakdown.cooldownAdjustment,
             },
             backendBadges: item.badges,
             backendSlotLabel: item.slotLabel,
@@ -561,34 +611,57 @@ export default function ExpertMatchPage() {
     );
 
     const nextRequests = Object.entries(groupedByExpert).flatMap(([expertId, items]) => {
-      const expert = mockQuizEnginePayload.experts.find((candidate) => candidate.id === expertId);
-
-      if (!expert) {
-        return [];
-      }
+      const matchItem = rankedExperts.find((candidate) => candidate.expert.id === expertId);
+      const expertObj = matchItem?.expert;
+      const expertName = expertObj?.fullName || items[0]?.expertName || "Expert Advisor";
 
       return [
         {
           id: createTrackingId("intro"),
           assessmentId: submission.assessmentId,
           expertId,
-          expertName: expert.fullName,
-          leadName: submission.lead.fullName,
-          leadEmail: submission.lead.workEmail,
-          leadPhone: submission.lead.phoneNumber,
+          expertName,
+          leadName: submission.lead.fullName || "Client",
+          leadEmail: submission.lead.workEmail || "client@example.com",
+          leadPhone: submission.lead.phoneNumber || "",
           requestedAt: now,
           serviceIds: items.map((item) => item.serviceId),
           serviceNames: items.map((item) => item.serviceName),
           category: introCategory,
-          urgencyLevel: submission.lead.urgencyPreference,
-          budgetPreference: submission.lead.budgetPreference,
+          urgencyLevel: submission.lead.urgencyPreference || "Standard",
+          budgetPreference: submission.lead.budgetPreference || "Flexible",
           billable: submission.leadTier === "premium",
-          leadTier: submission.leadTier,
-          expertTier: getExpertTier(expert),
+          leadTier: submission.leadTier || "standard",
+          expertTier: expertObj ? getExpertTier(expertObj) : "basic",
           status: "submitted" as const,
         },
       ];
     });
+
+    if (nextRequests.length > 0) {
+      try {
+        await createIntroductionRequestsInBackend({
+          assessmentId: submission.assessmentId,
+          leadName: submission.lead.fullName || "Client",
+          leadEmail: submission.lead.workEmail || "client@example.com",
+          leadPhone: submission.lead.phoneNumber || "",
+          requests: nextRequests.map((req) => ({
+            expertId: req.expertId,
+            expertName: req.expertName,
+            serviceIds: req.serviceIds,
+            serviceNames: req.serviceNames,
+            category: req.category,
+            urgencyLevel: req.urgencyLevel,
+            budgetPreference: req.budgetPreference,
+            billable: req.billable,
+            leadTier: req.leadTier,
+            expertTier: req.expertTier,
+          })),
+        });
+      } catch (err) {
+        console.error("Backend introduction creation failed:", err);
+      }
+    }
 
     const isLoggedIn = typeof window !== "undefined" && Boolean(localStorage.getItem("smartlink_access_token"));
     if (!isLoggedIn) {
@@ -858,10 +931,23 @@ export default function ExpertMatchPage() {
                         <Clock3 className="h-3.5 w-3.5" />
                         {match.availableWithin48Hours ? "Available now" : match.availabilityLabel}
                       </span>
-                      <span className="inline-flex items-center gap-2 rounded-full bg-[#EEF3FF] px-3 py-1 text-xs font-semibold text-[#356AF6]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (services.length > 0) {
+                            toggleService(expert, services[0]);
+                          }
+                        }}
+                        className={cn(
+                          "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer shadow-sm",
+                          services.some((s) => Boolean(selectedServices[`${expert.id}:${s.id}`]))
+                            ? "bg-[#16A34A] text-white shadow-emerald-200"
+                            : "bg-[#356AF6] text-white hover:bg-[#2C59D8]"
+                        )}
+                      >
                         <Handshake className="h-3.5 w-3.5" />
-                        Request introductions
-                      </span>
+                        {services.some((s) => Boolean(selectedServices[`${expert.id}:${s.id}`])) ? "Expert Selected ✓" : "Select Expert for Intro"}
+                      </button>
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">

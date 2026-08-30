@@ -144,8 +144,23 @@ export default function ResultsPage() {
     if (backendMatches && backendMatches.length > 0) {
       return backendMatches.map((backendMatch) => ({
         expert: {
-          ...(mockQuizEnginePayload.experts.find((item) => item.id === backendMatch.expert.id) || backendMatch.expert),
-          ...backendMatch.expert,
+          id: backendMatch.expert.id,
+          fullName: backendMatch.expert.fullName || "Expert Advisor",
+          role: backendMatch.expert.role || "Specialist Advisor",
+          organization: backendMatch.expert.organization || "SmartLink Network",
+          yearsExperience: backendMatch.expert.yearsExperience || 5,
+          specialties: backendMatch.expert.specialties || [highestRisk.category],
+          certifications: [],
+          languages: ["English"],
+          timezone: "EST",
+          bio: backendMatch.expert.bio || "",
+          rating: backendMatch.expert.rating || 4.8,
+          hourlyRateUsd: backendMatch.expert.hourlyRateUsd || 100,
+          nextAvailableAt: backendMatch.expert.nextAvailableAt || new Date().toISOString(),
+          visibilityLevel: backendMatch.expert.visibilityLevel || "basic",
+          matchingVisibility: backendMatch.expert.matchingVisibility || "visible",
+          rankingWeightBoost: 0,
+          subscriptionTier: backendMatch.expert.subscriptionTier || "basic",
         },
         totalScore: backendMatch.matchScore,
         matchTier: backendMatch.matchBand,
@@ -169,11 +184,7 @@ export default function ResultsPage() {
         backendRank: backendMatch.rank,
       }));
     }
-    return rankExpertsForSubmission(
-      submission,
-      highestRisk.category,
-      mockQuizEnginePayload.experts,
-    ).slice(0, 5);
+    return [];
   }, [backendMatches, highestRisk, submission]);
 
   const rankingFingerprint = submission

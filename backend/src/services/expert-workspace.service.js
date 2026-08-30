@@ -147,6 +147,45 @@ async function updateExpertProfile(userId, updates) {
 
   const expertId = link?.expert_id || userId;
 
+  // Fetch current expert record
+  const { data: existingExpert } = await supabase
+    .from("experts")
+    .select("*")
+    .eq("expert_id", expertId)
+    .single();
+
+  const metadata = existingExpert?.metadata || {};
+  const currentPackages = Array.isArray(metadata.custom_packages) ? metadata.custom_packages : [];
+
+  if (updates.custom_packages !== undefined) {
+    const newPackages = updates.custom_packages.map((pkg) => {
+      const existing = currentPackages.find((p) => p.id === pkg.id);
+      return {
+        id: pkg.id || `pkg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        name: pkg.name || pkg.title || "Custom Package",
+        description: pkg.description || "",
+        priceUsd: Number(pkg.priceUsd || pkg.price || 150),
+        deliveryWindow: pkg.deliveryWindow || pkg.delivery_time || "3-5 days",
+        category: pkg.category || "General Support",
+        status: existing && existing.name === pkg.name && existing.priceUsd === pkg.priceUsd ? existing.status : "pending",
+        created_at: existing?.created_at || new Date().toISOString(),
+      };
+    });
+    metadata.custom_packages = newPackages;
+    delete updates.custom_packages;
+  }
+
+  if (updates.introduction_bio !== undefined) {
+    metadata.introduction_bio = {
+      text: updates.introduction_bio,
+      status: "pending",
+      submitted_at: new Date().toISOString(),
+    };
+    delete updates.introduction_bio;
+  }
+
+  updates.metadata = metadata;
+
   const { data, error } = await supabase
     .from("experts")
     .update(updates)
@@ -154,6 +193,73 @@ async function updateExpertProfile(userId, updates) {
     .select()
     .single();
     
+  if (error) throw error;
+  return data;
+}
+
+async function reviewExpertPackage(expertId, packageId, status, rejectionReason = "") {
+  const supabase = requireSupabase();
+
+  const { data: expert, error: fetchError } = await supabase
+    .from("experts")
+    .select("*")
+    .eq("expert_id", expertId)
+    .single();
+
+  if (fetchError || !expert) throw new Error("Expert not found.");
+
+  const metadata = expert.metadata || {};
+  const packages = Array.isArray(metadata.custom_packages) ? metadata.custom_packages : [];
+
+  const updatedPackages = packages.map((pkg) => {
+    if (pkg.id === packageId) {
+      return {
+        ...pkg,
+        status,
+        rejectionReason: status === "rejected" ? rejectionReason : "",
+        reviewed_at: new Date().toISOString(),
+      };
+    }
+    return pkg;
+  });
+
+  metadata.custom_packages = updatedPackages;
+
+  const { data, error } = await supabase
+    .from("experts")
+    .update({ metadata })
+    .eq("expert_id", expertId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+async function reviewExpertIntroductionBio(expertId, status) {
+  const supabase = requireSupabase();
+
+  const { data: expert, error: fetchError } = await supabase
+    .from("experts")
+    .select("*")
+    .eq("expert_id", expertId)
+    .single();
+
+  if (fetchError || !expert) throw new Error("Expert not found.");
+
+  const metadata = expert.metadata || {};
+  if (metadata.introduction_bio) {
+    metadata.introduction_bio.status = status;
+    metadata.introduction_bio.reviewed_at = new Date().toISOString();
+  }
+
+  const { data, error } = await supabase
+    .from("experts")
+    .update({ metadata })
+    .eq("expert_id", expertId)
+    .select()
+    .single();
+
   if (error) throw error;
   return data;
 }
@@ -185,4 +291,6 @@ module.exports = {
   getDashboardOverview,
   updateExpertProfile,
   updateOpportunityStatus,
+  reviewExpertPackage,
+  reviewExpertIntroductionBio,
 };

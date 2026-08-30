@@ -59,13 +59,21 @@ function parseApiError(payload: unknown, fallback: string) {
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers || {}),
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers || {}),
+      },
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message.toLowerCase().includes("failed to fetch")) {
+      throw new Error(`Unable to connect to backend server at ${API_BASE}. Please verify backend server is running and CORS is allowed.`);
+    }
+    throw err;
+  }
 
   const text = await response.text();
   const payload = text ? JSON.parse(text) : null;
@@ -168,6 +176,8 @@ export async function registerUser(payload: {
 export type ResendVerificationResult = {
   success: boolean;
   skipped?: boolean;
+  alreadyVerified?: boolean;
+  message?: string;
   verificationLink?: string;
   emailServiceConfigured?: boolean;
 };

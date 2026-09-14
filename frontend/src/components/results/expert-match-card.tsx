@@ -19,6 +19,7 @@ interface ExpertMatchCardProps {
   slotLabel?: string | null;
   rank?: number;
   matchReasonTitle?: string;
+  onRequestIntro?: (expert: Expert) => void;
 }
 
 export function ExpertMatchCard({
@@ -35,6 +36,7 @@ export function ExpertMatchCard({
   slotLabel,
   rank,
   matchReasonTitle,
+  onRequestIntro,
 }: ExpertMatchCardProps) {
   const primarySpecialization =
     expert.specialties.find((specialty) => specialty === highestRiskCategory) ??
@@ -197,13 +199,24 @@ export function ExpertMatchCard({
             </p>
             <p className="text-xs text-[#5D6B85]">Within your preferred budget.</p>
           </div>
-          <Button
-            asChild
-            size="sm"
-            className="rounded-xl bg-[#356AF6] px-4 text-white hover:bg-[#2C59D8]"
-          >
-            <Link href="/expert-match">Request Introduction</Link>
-          </Button>
+          {onRequestIntro ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => onRequestIntro(expert)}
+              className="rounded-xl bg-[#356AF6] px-4 text-white hover:bg-[#2C59D8]"
+            >
+              Request Introduction
+            </Button>
+          ) : (
+            <Button
+              asChild
+              size="sm"
+              className="rounded-xl bg-[#356AF6] px-4 text-white hover:bg-[#2C59D8]"
+            >
+              <Link href={`/expert-match?expertId=${encodeURIComponent(expert.id)}`}>Request Introduction</Link>
+            </Button>
+          )}
         </div>
       </div>
     </article>

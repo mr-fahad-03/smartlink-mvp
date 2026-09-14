@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   Briefcase,
   Building2,
   CheckCircle2,
+  Lock,
   Mail,
   MapPin,
   MessageSquareQuote,
@@ -21,9 +23,11 @@ import {
 import { InnerNav } from "@/components/navigation/inner-nav";
 import { ExpertMatchCard } from "@/components/results/expert-match-card";
 import { RiskGauge } from "@/components/results/risk-gauge";
+import { VerificationModal } from "@/components/results/verification-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { mockQuizEnginePayload } from "@/data";
+import { getSessionMe } from "@/lib/admin-session";
 import { loadAssessmentSubmission, saveAssessmentSubmission } from "@/lib/assessment-storage";
 import {
   createLeadInBackend,
@@ -35,6 +39,7 @@ import type {
   AssessmentSubmission,
   BackendMatchRecommendation,
   ConnectionStatus,
+  Expert,
   MissingFeedbackReason,
   ResultsFeedbackAnswer,
 } from "@/types";
@@ -112,15 +117,70 @@ const missingReasonOptions: { value: MissingFeedbackReason; label: string }[] = 
 ];
 
 export default function ResultsPage() {
+  const router = useRouter();
   const [submission, setSubmission] = useState<AssessmentSubmission | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [backendMatches, setBackendMatches] = useState<BackendMatchRecommendation[] | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [modalActionIntent, setModalActionIntent] = useState("see all results and connect with experts");
 
   useEffect(() => {
     const stored = loadAssessmentSubmission();
     setSubmission(stored);
     setIsLoaded(true);
+
+    const checkAuthStatus = async () => {
+      const token = typeof window !== "undefined" ? localStorage.getItem("smartlink_access_token") : null;
+      if (!token) {
+        setIsVerified(false);
+        return;
+      }
+      try {
+        const me = await getSessionMe();
+        if (me && me.email) {
+          setIsVerified(true);
+        }
+      } catch (_) {
+        setIsVerified(false);
+      }
+    };
+
+    checkAuthStatus();
   }, []);
+
+  const requireVerification = (intent: string) => {
+    setModalActionIntent(intent);
+    setIsVerificationModalOpen(true);
+  };
+
+  const handleAuthSuccess = () => {
+    setIsVerified(true);
+  };
+
+  const handleRequestIntro = (expert: Expert) => {
+    if (!isVerified) {
+      requireVerification(`hire ${expert.fullName}`);
+    } else {
+      router.push(`/expert-match?expertId=${encodeURIComponent(expert.id)}`);
+    }
+  };
+
+  const handleGetMatched = () => {
+    if (!isVerified) {
+      requireVerification("get matched with the right expert");
+    } else {
+      router.push("/expert-match");
+    }
+  };
+
+  const handleTalkToExpert = () => {
+    if (!isVerified) {
+      requireVerification("chat directly with an expert advisor");
+    } else {
+      router.push("/expert-match?action=chat");
+    }
+  };
 
   const updateFeedbackLoop = (updater: (current: AssessmentSubmission) => AssessmentSubmission) => {
     setSubmission((current) => {
@@ -396,14 +456,23 @@ export default function ResultsPage() {
               ) : null}
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button asChild size="lg" className="h-11 rounded-xl bg-[#356AF6] px-6 text-white hover:bg-[#2C59D8]">
-                <Link href="/expert-match">
-                  Get Matched with the Right Expert
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+              <Button
+                type="button"
+                onClick={handleGetMatched}
+                size="lg"
+                className="h-11 rounded-xl bg-[#356AF6] px-6 text-white hover:bg-[#2C59D8]"
+              >
+                Get Matched with the Right Expert
+                <ArrowRight className="h-4 w-4 ml-1.5" />
               </Button>
-              <Button asChild variant="outline" size="lg" className="h-11 rounded-xl border-[#D9E3F3] bg-white text-[#111827] hover:bg-[#F7FAFF]">
-                <Link href="/expert-match?action=chat">Talk to an Expert Now</Link>
+              <Button
+                type="button"
+                onClick={handleTalkToExpert}
+                variant="outline"
+                size="lg"
+                className="h-11 rounded-xl border-[#D9E3F3] bg-white text-[#111827] hover:bg-[#F7FAFF]"
+              >
+                Talk to an Expert Now
               </Button>
             </div>
           </div>
@@ -564,16 +633,50 @@ export default function ResultsPage() {
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button asChild size="lg" className="h-11 rounded-xl bg-[#356AF6] px-6 text-white hover:bg-[#2C59D8]">
-              <Link href="/expert-match">
-                Get Matched with the Right Expert
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+            <Button
+              type="button"
+              onClick={handleGetMatched}
+              size="lg"
+              className="h-11 rounded-xl bg-[#356AF6] px-6 text-white hover:bg-[#2C59D8]"
+            >
+              Get Matched with the Right Expert
+              <ArrowRight className="h-4 w-4 ml-1.5" />
             </Button>
-            <Button asChild variant="outline" size="lg" className="h-11 rounded-xl border-[#D9E3F3] bg-white text-[#111827] hover:bg-[#F7FAFF]">
-              <Link href="/expert-match?action=chat">Talk to an Expert Now</Link>
+            <Button
+              type="button"
+              onClick={handleTalkToExpert}
+              variant="outline"
+              size="lg"
+              className="h-11 rounded-xl border-[#D9E3F3] bg-white text-[#111827] hover:bg-[#F7FAFF]"
+            >
+              Talk to an Expert Now
             </Button>
           </div>
+
+          {!isVerified && (
+            <div className="mt-6 rounded-[24px] border border-[#BFDBFE] bg-[linear-gradient(135deg,#EFF6FF_0%,#F8FAFC_100%)] p-6 shadow-sm sm:p-7">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-[#DBEAFE] px-3 py-1 text-xs font-semibold text-[#1D4ED8]">
+                    <Lock className="h-3.5 w-3.5" />
+                    Account Verification Required to Hire
+                  </div>
+                  <h3 className="text-lg font-bold text-[#111827]">Verify your account to see all results & hire advisors</h3>
+                  <p className="text-xs sm:text-sm text-[#475569] max-w-2xl leading-6">
+                    Review your personalized diagnostics below. To request an introduction, message advisors, or see all provider contact details, please verify your account.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => requireVerification("see all results and connect with experts")}
+                  size="lg"
+                  className="h-11 shrink-0 rounded-xl bg-[#356AF6] px-5 text-sm font-semibold text-white shadow hover:bg-[#2C59D8]"
+                >
+                  Verify Account to See All
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {rankedExperts.map((match) => (
@@ -592,6 +695,7 @@ export default function ResultsPage() {
                 slotLabel={(match as { backendSlotLabel?: string | null }).backendSlotLabel}
                 rank={(match as { backendRank?: number }).backendRank}
                 matchReasonTitle="Why this match works"
+                onRequestIntro={handleRequestIntro}
               />
             ))}
           </div>
@@ -815,6 +919,15 @@ export default function ResultsPage() {
           </article>
         </section>
       </div>
+
+      <VerificationModal
+        isOpen={isVerificationModalOpen}
+        onClose={() => setIsVerificationModalOpen(false)}
+        leadEmail={submission.lead.workEmail || ""}
+        leadName={submission.lead.fullName || "Client"}
+        onSuccess={handleAuthSuccess}
+        actionIntent={modalActionIntent}
+      />
     </main>
   );
 }

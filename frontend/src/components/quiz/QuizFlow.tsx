@@ -8,7 +8,6 @@ import {
   Globe2,
   Loader2,
   LocateFixed,
-  Lock,
   Mail,
   MapPin,
   Phone,
@@ -27,7 +26,6 @@ import { mockQuizEnginePayload } from "@/data";
 import { saveAssessmentSubmission } from "@/lib/assessment-storage";
 import { rankExpertsForSubmission } from "@/lib/expert-matching";
 import { createLeadInBackend } from "@/lib/backend-api";
-import { registerUser } from "@/lib/admin-session";
 import { cn } from "@/lib/utils";
 import type {
   AudienceSegment,
@@ -56,7 +54,6 @@ interface LeadCaptureFormValues {
   website: string;
   teamSize: string;
   priorConsultingExperience: string;
-  password?: string;
 }
 
 interface QuizOption {
@@ -1341,7 +1338,6 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
       website: "",
       teamSize: "",
       priorConsultingExperience: "",
-      password: "",
     },
   });
 
@@ -1591,22 +1587,6 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
   };
 
   const handleLeadCaptureSubmit = async (values: LeadCaptureFormValues) => {
-    const isLoggedIn = typeof window !== "undefined" && Boolean(localStorage.getItem("smartlink_access_token"));
-    if (!isLoggedIn && values.password) {
-      try {
-        await registerUser({
-          email: values.workEmail.trim(),
-          password: values.password,
-          fullName: values.fullName.trim(),
-          role: "client",
-        });
-      } catch (err: any) {
-        console.error("Auth registration failed", err);
-        alert(err.message || "Failed to create account. Email might already be registered.");
-        return;
-      }
-    }
-
     const submittedAt = new Date().toISOString();
     const budgetPreference = selectedBudget?.text;
     const businessSelectedOptions = [
@@ -1791,11 +1771,7 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
     setFlowStep("loading");
     if (loadingTimeout.current) clearTimeout(loadingTimeout.current);
     loadingTimeout.current = setTimeout(() => {
-      if (!isLoggedIn && values.password) {
-        router.push(`/auth/verify-pending?email=${encodeURIComponent(values.workEmail.trim())}`);
-      } else {
-        router.push("/results");
-      }
+      router.push("/results");
     }, 2000);
   };
 
@@ -2045,28 +2021,6 @@ export function QuizFlow({ initialSituation, initialAudience }: QuizFlowProps) {
                         </div>
                         {errors.workEmail ? <p className="text-xs text-rose-600">{errors.workEmail.message}</p> : null}
                       </div>
-
-                      {typeof window !== "undefined" && !localStorage.getItem("smartlink_access_token") && (
-                        <div className="space-y-1.5">
-                          <label htmlFor="password" className="text-sm font-medium text-[#111827]">
-                            Create Account Password
-                          </label>
-                          <div className="relative">
-                            <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                            <input
-                              id="password"
-                              type="password"
-                              placeholder="Choose a secure password"
-                              className="h-11 w-full rounded-2xl border border-[#D9E3F3] bg-white px-11 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#356AF6] focus:ring-2 focus:ring-[#356AF6]/15"
-                              {...register("password", {
-                                required: "Password is required to create your client dashboard account.",
-                                minLength: { value: 8, message: "Password must be at least 8 characters long." },
-                              })}
-                            />
-                          </div>
-                          {errors.password ? <p className="text-xs text-rose-600">{errors.password.message}</p> : null}
-                        </div>
-                      )}
 
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between gap-3">

@@ -7,7 +7,8 @@
     "dev": "nodemon index.js",
     "lint": "node -e \"console.log('No lint configured yet')\"",
     "db:bootstrap": "bash ./scripts/bootstrap-schema.sh",
-    "start": "node index.js"
+    "start": "node index.js",
+    "seed:expert": "node ./scripts/create-expert-user.js"
   },
   "keywords": [
     "smartlink",

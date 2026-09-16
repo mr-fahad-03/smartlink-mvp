@@ -139,13 +139,15 @@ export default function ClientDashboardLayout({ children }: { children: React.Re
       try {
         const session = await getSessionMe();
         if (!session || !canUseClientFlows(session.role)) {
-          router.replace("/login");
+          clearAdminSession();
+          router.replace("/login?expired=true");
           return;
         }
         setUser(session);
       } catch (err) {
         console.error("Auth check failed", err);
-        router.replace("/login");
+        clearAdminSession();
+        router.replace("/login?expired=true");
       } finally {
         setLoading(false);
       }

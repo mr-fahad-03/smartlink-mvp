@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getExpertDashboardData } from "@/lib/backend-api";
-import { getAdminAccessToken, getSessionMe } from "@/lib/admin-session";
+import { getAdminAccessToken, getSessionMe, clearAdminSession } from "@/lib/admin-session";
 import { canUseExpertSection } from "@/lib/role-guard";
 import { useRouter } from "next/navigation";
 
@@ -48,9 +48,14 @@ export default function ExpertDashboardOverview() {
 
         const response = await getExpertDashboardData(token);
         if (!active) return;
-        setData(response);
       } catch (error: any) {
         console.error("Failed to load dashboard data:", error);
+        const msg = String(error?.message || error).toLowerCase();
+        if (msg.includes("expired") || msg.includes("invalid") || msg.includes("session") || msg.includes("401")) {
+          clearAdminSession();
+          router.replace("/login?expired=true");
+          return;
+        }
         setErrorMsg(error.message || String(error));
       } finally {
         if (active) setLoading(false);

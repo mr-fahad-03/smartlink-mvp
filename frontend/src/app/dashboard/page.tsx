@@ -14,10 +14,12 @@ import {
   AlertCircle
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getClientDashboardData, createIntroductionRequestsInBackend } from "@/lib/backend-api";
-import { getAdminAccessToken } from "@/lib/admin-session";
+import { getAdminAccessToken, clearAdminSession } from "@/lib/admin-session";
 
 export default function ClientDashboardOverview() {
+  const router = useRouter();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -28,8 +30,8 @@ export default function ClientDashboardOverview() {
       try {
         const token = getAdminAccessToken();
         if (!token) {
-          setErrorMsg("Session expired. Please log in again.");
-          setLoading(false);
+          clearAdminSession();
+          router.replace("/login?expired=true");
           return;
         }
 
@@ -93,6 +95,12 @@ export default function ClientDashboardOverview() {
         setData(response);
       } catch (error: any) {
         console.error("Failed to load dashboard data:", error);
+        const msg = String(error?.message || error).toLowerCase();
+        if (msg.includes("expired") || msg.includes("invalid") || msg.includes("session") || msg.includes("401")) {
+          clearAdminSession();
+          router.replace("/login?expired=true");
+          return;
+        }
         setErrorMsg(error.message || String(error));
       } finally {
         if (active) setLoading(false);

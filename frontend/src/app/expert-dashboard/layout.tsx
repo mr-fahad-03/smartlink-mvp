@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -21,7 +21,8 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { clearAdminSession, logoutCurrentSession } from "@/lib/admin-session";
+import { clearAdminSession, logoutCurrentSession, getAdminAccessToken, getSessionMe } from "@/lib/admin-session";
+import { canUseExpertSection } from "@/lib/role-guard";
 
 const navigation = [
   { name: "Dashboard", href: "/expert-dashboard", icon: LayoutDashboard },
@@ -122,6 +123,34 @@ export default function ExpertDashboardLayout({ children }: { children: React.Re
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function checkAuth() {
+      const token = getAdminAccessToken();
+      if (!token) {
+        clearAdminSession();
+        router.replace("/login");
+        return;
+      }
+      try {
+        const session = await getSessionMe();
+        if (!session || !canUseExpertSection(session.role)) {
+          clearAdminSession();
+          router.replace("/login");
+          return;
+        }
+      } catch (err) {
+        console.error("Expert dashboard auth check failed:", err);
+        clearAdminSession();
+        router.replace("/login?expired=true");
+        return;
+      } finally {
+        setLoading(false);
+      }
+    }
+    checkAuth();
+  }, [router]);
 
   const handleLogout = async () => {
     try {
@@ -131,6 +160,14 @@ export default function ExpertDashboardLayout({ children }: { children: React.Re
     }
     router.replace("/login");
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F7FB] dark:bg-gray-900">
+        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-[#356AF6]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-[#F4F7FB] dark:bg-gray-900">

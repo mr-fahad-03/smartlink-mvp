@@ -434,6 +434,7 @@ export default function AdminPage() {
   useEffect(() => {
     const accessToken = getAdminAccessToken();
     if (!accessToken) {
+      clearAdminSession();
       router.replace("/login");
       return;
     }
@@ -449,7 +450,7 @@ export default function AdminPage() {
       .catch((loadError) => {
         clearAdminSession();
         setError(loadError instanceof Error ? loadError.message : "Unauthorized");
-        router.replace("/login");
+        router.replace("/login?expired=true");
       })
       .finally(() => setLoading(false));
   }, [router]);

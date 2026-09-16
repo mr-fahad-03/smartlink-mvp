@@ -66,6 +66,8 @@ export default function LoginPage() {
       const searchParams = new URLSearchParams(window.location.search);
       if (searchParams.get("verified") === "true") {
         setMessage("Email verified successfully! Please sign in below.");
+      } else if (searchParams.get("expired") === "true") {
+        setMessage("Your session has expired. Please sign in to continue.");
       }
     }
   }, []);

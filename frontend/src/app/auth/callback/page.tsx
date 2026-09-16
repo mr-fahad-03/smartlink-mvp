@@ -39,10 +39,15 @@ export default function AuthCallbackPage() {
           return;
         }
 
+        const hasQuizAssessment = typeof window !== "undefined" && Boolean(localStorage.getItem("smartlink_assessment_submission"));
         router.replace(
           data.role === "admin" || data.role === "super_admin" || data.role === "moderator" || data.role === "auditor"
             ? "/admin"
-            : "/",
+            : data.role === "expert"
+              ? "/expert-dashboard"
+              : hasQuizAssessment
+                ? "/results?verified=true"
+                : "/dashboard"
         );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Social login failed.");
@@ -69,8 +74,16 @@ export default function AuthCallbackPage() {
       } else {
         result = await verifyEmailOtp(ticket, code.trim());
       }
-      const nextRole = result.role;
-      router.replace(nextRole === "admin" || nextRole === "super_admin" || nextRole === "moderator" || nextRole === "auditor" ? "/admin" : "/");
+      const hasQuizAssessment = typeof window !== "undefined" && Boolean(localStorage.getItem("smartlink_assessment_submission"));
+      router.replace(
+        nextRole === "admin" || nextRole === "super_admin" || nextRole === "moderator" || nextRole === "auditor"
+          ? "/admin"
+          : nextRole === "expert"
+            ? "/expert-dashboard"
+            : hasQuizAssessment
+              ? "/results?verified=true"
+              : "/dashboard"
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to verify MFA.");
     }

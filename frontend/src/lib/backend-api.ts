@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+import { clearAdminSession } from "@/lib/admin-session";
 import type {
   AssessmentSubmission,
   BackendMatchRecommendation,
@@ -40,7 +40,18 @@ async function postJsonWithAuth<T>(path: string, payload: unknown, token: string
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `Backend API failed: ${response.status}`);
+    if (response.status === 401 && typeof window !== "undefined") {
+      clearAdminSession();
+      if (!window.location.pathname.startsWith("/login") && !window.location.pathname.startsWith("/quiz")) {
+        window.location.href = "/login?expired=true";
+      }
+    }
+    let errorMsg = text;
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed.message) errorMsg = parsed.message;
+    } catch (_) {}
+    throw new Error(errorMsg || `Backend API failed: ${response.status}`);
   }
 
   return response.json() as Promise<T>;
@@ -58,7 +69,18 @@ async function requestWithAuth<T>(path: string, token: string, init?: RequestIni
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `Backend API failed: ${response.status}`);
+    if (response.status === 401 && typeof window !== "undefined") {
+      clearAdminSession();
+      if (!window.location.pathname.startsWith("/login") && !window.location.pathname.startsWith("/quiz")) {
+        window.location.href = "/login?expired=true";
+      }
+    }
+    let errorMsg = text;
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed.message) errorMsg = parsed.message;
+    } catch (_) {}
+    throw new Error(errorMsg || `Backend API failed: ${response.status}`);
   }
 
   return response.json() as Promise<T>;

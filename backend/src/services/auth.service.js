@@ -812,7 +812,10 @@ async function registerUser(req, payload) {
 
   let actionLink = null;
   if (env.AUTH_REQUIRE_EMAIL_VERIFICATION && user?.email) {
-    const origin = req.headers?.origin || (req.headers?.host ? `${req.secure ? "https" : "http"}://${req.headers.host}` : null) || env.AUTH_VERIFY_REDIRECT_URL || "http://localhost:3000";
+    let origin = req.headers?.origin || env.AUTH_VERIFY_REDIRECT_URL || "https://linksmartbahamas.com/results?verified=true";
+    if (!origin || origin.includes("localhost:5000") || (origin.includes("localhost") && (process.env.NODE_ENV === "production" || !req.headers?.origin))) {
+      origin = "https://linksmartbahamas.com/results?verified=true";
+    }
     try {
       const { data, error } = await client.auth.admin.generateLink({
         type: "signup",
@@ -1417,10 +1420,16 @@ async function revokeAllSessions(req, accessToken) {
 async function resendVerificationEmail(email, redirectUrl = null) {
   const normalizedEmail = normalizeEmail(email);
   const client = requireSupabaseClient();
-  let targetRedirect = redirectUrl || env.AUTH_VERIFY_REDIRECT_URL || "http://localhost:3000/login?verified=true";
+  let targetRedirect = redirectUrl || env.AUTH_VERIFY_REDIRECT_URL || "https://linksmartbahamas.com/results?verified=true";
 
-  if (targetRedirect.endsWith("http://localhost:3000") || targetRedirect.endsWith("http://localhost:3000/")) {
-    targetRedirect = `${targetRedirect.replace(/\/$/, "")}/login?verified=true`;
+  if (
+    !targetRedirect ||
+    targetRedirect.includes("localhost:5000") ||
+    (targetRedirect.includes("localhost") && (process.env.NODE_ENV === "production" || !redirectUrl?.includes("localhost:3000")))
+  ) {
+    targetRedirect = "https://linksmartbahamas.com/results?verified=true";
+  } else if (targetRedirect.endsWith("http://localhost:3000") || targetRedirect.endsWith("http://localhost:3000/")) {
+    targetRedirect = `${targetRedirect.replace(/\/$/, "")}/results?verified=true`;
   }
 
   const authUser = await findAuthUserByEmail(normalizedEmail);
@@ -1491,6 +1500,9 @@ async function resendVerificationEmail(email, redirectUrl = null) {
     await supabaseAuthRequest("/resend", {
       type: "signup",
       email: normalizedEmail,
+      options: {
+        emailRedirectTo: targetRedirect,
+      },
     });
   } catch (_) {}
 

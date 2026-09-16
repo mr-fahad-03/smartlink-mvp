@@ -79,6 +79,12 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const payload = text ? JSON.parse(text) : null;
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== "undefined") {
+      clearAdminSession();
+      if (!window.location.pathname.startsWith("/login") && !window.location.pathname.startsWith("/quiz")) {
+        window.location.href = "/login?expired=true";
+      }
+    }
     throw parseApiError(payload, `Auth request failed (${response.status})`);
   }
 
